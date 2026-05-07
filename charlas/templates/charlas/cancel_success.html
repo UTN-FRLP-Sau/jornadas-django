@@ -1,0 +1,21 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7 text-center">
+                <div class="card p-5 shadow-lg border-0 rounded-3">
+                    <div class="mb-4">
+                        <i class="fa fa-check-circle text-success" style="font-size: 80px;"></i>
+                    </div>
+                    <h2 class="mb-4">¡Inscripción Cancelada!</h2>
+                    <p class="fs-5 text-muted mb-4">Tu inscripción ha sido cancelada correctamente. Gracias por avisar y liberar el cupo para otro compañero.</p>
+                    <a href="{% url 'index' %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">Volver al Inicio</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

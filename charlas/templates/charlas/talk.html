@@ -1,0 +1,86 @@
+{% extends 'charlas/base.html' %}
+{% load static %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <h5 class="text-primary-gradient fw-medium">Formulario de Inscripción</h5>
+                    <h1 class="mb-3">{{ talk.title }}</h1>
+                    <p class="mb-0">Fecha: <strong>{{ talk.date }}</strong> — Horario: <strong>{{ talk.time }}</strong><br>Disertante: <strong>{{ talk.speaker }}</strong></p>
+                </div>
+
+                <div class="card p-4 p-md-5">
+                    {% if errors %}
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if talk.remaining_capacity <= 0 %}
+                    <div class="alert alert-warning text-center">
+                        <h4 class="alert-heading">¡Cupos Agotados!</h4>
+                        <p class="mb-0">Lo sentimos, esta charla ya alcanzó su capacidad máxima ({{ talk.capacity }} inscriptos).</p>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'index' %}" class="btn btn-outline-primary rounded-pill">Volver al inicio</a>
+                    </div>
+                    {% else %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre</label>
+                                {{ form.nombre }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Apellido</label>
+                                {{ form.apellido }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">DNI</label>
+                                {{ form.dni }}
+                                {% if form.dni.errors %}<div class="text-danger small mt-1">{{ form.dni.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Repetir DNI</label>
+                                {{ form.dni_repeat }}
+                                {% if form.dni_repeat.errors %}<div class="text-danger small mt-1">{{ form.dni_repeat.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Legajo</label>
+                                {{ form.legajo }}
+                                {% if form.legajo.errors %}<div class="text-danger small mt-1">{{ form.legajo.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Repetir Legajo</label>
+                                {{ form.legajo_repeat }}
+                                {% if form.legajo_repeat.errors %}<div class="text-danger small mt-1">{{ form.legajo_repeat.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Correo Electrónico</label>
+                                {{ form.correo }}
+                                {% if form.correo.errors %}<div class="text-danger small mt-1">{{ form.correo.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Repetir Correo Electrónico</label>
+                                {{ form.correo_repeat }}
+                                {% if form.correo_repeat.errors %}<div class="text-danger small mt-1">{{ form.correo_repeat.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-12 text-center mt-4">
+                                <button type="submit" class="btn btn-primary-gradient py-3 px-5 rounded-pill w-100">Confirmar Inscripción</button>
+                            </div>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

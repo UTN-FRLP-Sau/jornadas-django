@@ -1,0 +1,62 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0">Escáner de Asistencia — {{ talk.title }}</h4>
+                    <a href="{% url 'admin_talk_details' talk.pk %}" class="btn btn-outline-secondary rounded-pill">Ver Listado</a>
+                </div>
+
+                <div class="card p-4 shadow-sm border-0">
+                    <p class="text-muted text-center mb-3">Enfoca la cámara al código QR del asistente.</p>
+                    <div id="reader" width="100%"></div>
+                    <div id="scan-result" class="alert d-none mt-4 text-center">
+                        <h4 class="alert-heading mb-1" id="scan-message"></h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+const talkId = {{ talk.pk }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+let isScanning = true;
+
+function onScanSuccess(decodedText) {
+    if (!isScanning) return;
+    isScanning = false;
+
+    fetch("{% url 'api_scan' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+        body: JSON.stringify({ token: decodedText, talk_id: talkId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        const resultDiv = document.getElementById('scan-result');
+        const msgEl = document.getElementById('scan-message');
+        resultDiv.classList.remove('d-none', 'alert-success', 'alert-warning', 'alert-danger');
+        if (data.success) {
+            resultDiv.classList.add(data.already_attended ? 'alert-warning' : 'alert-success');
+        } else {
+            resultDiv.classList.add('alert-danger');
+        }
+        msgEl.textContent = data.message;
+        setTimeout(() => { resultDiv.classList.add('d-none'); isScanning = true; }, 3000);
+    })
+    .catch(() => { isScanning = true; });
+}
+
+new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} }, false)
+    .render(onScanSuccess, () => {});
+</script>
+{% endblock %}
+{% endwith %}

@@ -1,0 +1,72 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <div class="mb-5 text-center">
+                    <h5 class="text-primary-gradient fw-medium">Panel de Administración</h5>
+                    <h1 class="mb-0">{{ title|default:"Gestionar Charla" }}</h1>
+                </div>
+
+                <div class="card p-4 p-md-5">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="row g-4">
+                            <div class="col-12">
+                                <label class="form-label fw-bold">{{ form.title.label }}</label>
+                                {{ form.title }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">{{ form.description.label }}</label>
+                                {{ form.description }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">{{ form.speaker.label }}</label>
+                                {{ form.speaker }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">{{ form.date.label }}</label>
+                                {{ form.date }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">{{ form.time.label }}</label>
+                                {{ form.time }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">{{ form.department.label }}</label>
+                                {{ form.department }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">{{ form.target_year.label }}</label>
+                                {{ form.target_year }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">{{ form.capacity.label }}</label>
+                                {{ form.capacity }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">{{ form.image.label }}</label>
+                                {% if current_image %}
+                                <div class="mb-3 text-center bg-light p-3 rounded">
+                                    <img src="{{ current_image.url }}" alt="Imagen actual" style="max-height: 100px;" class="rounded border shadow-sm">
+                                    <div class="small mt-2 text-muted">Imagen Actual (subir una nueva para reemplazarla)</div>
+                                </div>
+                                {% endif %}
+                                {{ form.image }}
+                                <div class="form-text">{{ form.image.help_text }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-5">
+                            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary py-2 px-4 rounded-pill">Cancelar</a>
+                            <button type="submit" class="btn btn-primary-gradient py-2 px-4 rounded-pill">{{ submit_label|default:"Guardar" }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

@@ -1,0 +1,35 @@
+{% extends 'charlas/base.html' %}
+{% load static %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-5 col-md-7">
+                <div class="text-center mb-5">
+                    <img src="{% static 'charlas/img/logo_dark.png' %}" alt="Logo" style="max-height: 80px;" class="mb-4">
+                    <h5 class="text-primary-gradient fw-medium">Panel de Administración</h5>
+                    <h1 class="mb-0">Acceso Restringido</h1>
+                </div>
+                <div class="card p-4 p-md-5 shadow-sm">
+                    {% if error %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                    {% endif %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">PIN de Administrador</label>
+                            {{ form.pin }}
+                        </div>
+                        <button type="submit" class="btn btn-primary-gradient py-3 w-100 rounded-pill">Ingresar</button>
+                    </form>
+                </div>
+                <div class="text-center mt-4">
+                    <a href="{% url 'index' %}" class="text-muted small">← Volver al sitio público</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

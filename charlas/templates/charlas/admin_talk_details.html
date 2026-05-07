@@ -1,0 +1,88 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-fluid py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="mb-4 d-flex justify-content-between align-items-start">
+            <div>
+                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary rounded-pill mb-4"><i class="fa fa-arrow-left me-2"></i>Volver al Panel</a>
+                <h5 class="text-primary-gradient fw-medium">Control de Asistencia</h5>
+                <h1 class="mb-2">{{ talk.title }}</h1>
+                <p class="text-muted"><i class="fa fa-calendar-alt me-2"></i>{{ talk.date }} — {{ talk.time }} | <i class="fa fa-user me-2"></i>{{ talk.speaker }}</p>
+            </div>
+            <div class="pt-2 d-flex gap-2">
+                <a href="{% url 'admin_scan' talk.pk %}" class="btn btn-outline-success rounded-pill shadow-sm">
+                    <i class="fa fa-qrcode me-2"></i>Escanear QRs
+                </a>
+                <a href="{% url 'export_attendance' talk.pk %}" class="btn btn-success rounded-pill shadow-sm">
+                    <i class="fa fa-file-excel me-2"></i>Exportar Excel
+                </a>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>DNI</th>
+                            <th>Legajo</th>
+                            <th>Correo</th>
+                            <th class="text-center">Asistió</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in registrations %}
+                        <tr>
+                            <td class="fw-bold">{{ reg.apellido }}, {{ reg.nombre }}</td>
+                            <td>{{ reg.dni }}</td>
+                            <td>{{ reg.legajo }}</td>
+                            <td>{{ reg.correo }}</td>
+                            <td class="text-center">
+                                <label class="switch">
+                                    <input type="checkbox" class="attendance-toggle" data-id="{{ reg.id }}" {% if reg.attended %}checked{% endif %}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </td>
+                            <td class="text-end">
+                                <form method="POST" action="{% url 'admin_delete_registration' reg.id %}" onsubmit="return confirm('¿Cancelar esta inscripción?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fa fa-times me-1"></i>Cancelar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No hay inscriptos en esta charla todavía.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.attendance-toggle').forEach(toggle => {
+    toggle.addEventListener('change', function() {
+        const regId = this.getAttribute('data-id');
+        const attended = this.checked;
+        fetch(`/admin/attendance/${regId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ attended: attended })
+        })
+        .then(r => r.json())
+        .then(data => { if (!data.success) { alert('Error al actualizar'); this.checked = !attended; } })
+        .catch(() => { alert('Error de conexión'); this.checked = !attended; });
+    });
+});
+</script>
+{% endblock %}
+{% endwith %}
