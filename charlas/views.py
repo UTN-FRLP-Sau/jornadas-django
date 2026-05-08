@@ -41,7 +41,7 @@ def _build_qr_content(registration):
 
 def _send_confirmation_email(request, registration):
     talk = registration.talk
-    cancel_url = request.build_absolute_uri(f'/cancel/{registration.token}/')
+    cancel_url = f"{settings.SITE_URL}/cancel/{registration.token}/"
 
     # Generar QR
     qr = qrcode.QRCode(version=1, box_size=10, border=5)

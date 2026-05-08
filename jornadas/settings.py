@@ -89,3 +89,5 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 
 # Sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+SITE_URL = config('SITE_URL', default='http://localhost:8000')
