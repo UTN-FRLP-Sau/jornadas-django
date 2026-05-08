@@ -1,3 +1,7 @@
+from django.core.mail import get_connection
+from email.mime.image import MIMEImage
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import uuid
 import base64
 from io import BytesIO
@@ -22,42 +26,58 @@ from openpyxl.styles import Font
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
 
-def _build_qr_b64(token):
-    """Return a base64-encoded PNG of a QR code containing *token*."""
+def _build_qr_content(registration):
+    return f"{registration.apellido}|{registration.legajo}|{registration.dni}|{registration.talk_id}|{registration.token}"
+
+
+def _send_confirmation_email(request, registration):
+    talk = registration.talk
+    cancel_url = request.build_absolute_uri(f'/cancel/{registration.token}/')
+
+    # Generar QR
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(token)
+    qr.add_data(_build_qr_content(registration))
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = BytesIO()
     img.save(buf, format='PNG')
-    return base64.b64encode(buf.getvalue()).decode('utf-8')
-
-
-def _send_confirmation_email(request, registration):
-    """Send QR + cancellation link to the registrant. Fails silently."""
-    talk = registration.talk
-    cancel_url = request.build_absolute_uri(f'/cancel/{registration.token}/')
-    qr_b64 = _build_qr_b64(registration.token)
+    qr_bytes = buf.getvalue()
 
     html_body = f"""
     <h3>¡Hola {registration.nombre}!</h3>
     <p>Tu inscripción a la charla <b>{talk.title}</b> ha sido confirmada.</p>
     <p><b>Fecha:</b> {talk.date} | <b>Hora:</b> {talk.time} | <b>Disertante:</b> {talk.speaker}</p>
     <p>Para asistir el día del evento, presentá el siguiente código QR en la entrada:</p>
-    <img src="data:image/png;base64,{qr_b64}" alt="QR Asistencia" />
+    <img src="cid:qr_code" alt="QR Asistencia" />
     <br><br>
-    <p>Si no puedes asistir, por favor cancela tu inscripción para liberar el cupo:</p>
+    <p>Si no puedes asistir, cancelá tu inscripción para liberar el cupo:</p>
     <p><a href="{cancel_url}">{cancel_url}</a></p>
     """
+
     try:
-        msg = EmailMessage(
-            subject=f'Confirmación de Inscripción: {talk.title}',
-            body=html_body,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[registration.correo],
+        msg = MIMEMultipart('related')
+        msg['Subject'] = f'Confirmación de Inscripción: {talk.title}'
+        msg['From'] = settings.DEFAULT_FROM_EMAIL
+        msg['To'] = registration.correo
+
+        alt = MIMEMultipart('alternative')
+        msg.attach(alt)
+        alt.attach(MIMEText(html_body, 'html'))
+
+        img_mime = MIMEImage(qr_bytes)
+        img_mime.add_header('Content-ID', '<qr_code>')
+        img_mime.add_header('Content-Disposition', 'inline',
+                            filename='qr_asistencia.png')
+        msg.attach(img_mime)
+
+        connection = get_connection()
+        connection.open()
+        connection.connection.sendmail(
+            settings.DEFAULT_FROM_EMAIL,
+            [registration.correo],
+            msg.as_string()
         )
-        msg.content_subtype = 'html'
-        msg.send()
+        connection.close()
     except Exception as exc:
         print(f'[EMAIL] No se pudo enviar a {registration.correo}: {exc}')
         print(f'[EMAIL] Cancel URL (debug): {cancel_url}')
@@ -285,6 +305,7 @@ def api_scan(request):
         return JsonResponse({'success': False, 'message': 'Datos incompletos.'}, status=400)
 
     try:
+        token = data.get('token').split('|')[-1]
         reg = Registration.objects.get(token=token, talk_id=talk_id)
     except Registration.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Código QR inválido para esta charla.'}, status=404)
