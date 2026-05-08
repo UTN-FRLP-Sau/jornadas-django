@@ -86,8 +86,29 @@ def _send_confirmation_email(request, registration):
 # ────────────────────────────────────────────────────────────────────────────────
 
 def index(request):
-    talks = Talk.objects.all()
-    return render(request, 'charlas/index.html', {'talks': talks})
+    talks = list(Talk.objects.all())
+    
+    def get_date_priority(talk):
+        d = talk.date.lower()
+        if 'martes' in d: return 1
+        if 'miércoles' in d or 'miercoles' in d: return 2
+        if 'jueves' in d: return 3
+        return 4
+        
+    def normalize_date(talk):
+        d = talk.date.lower()
+        if 'martes' in d: return 'Martes 19 de Mayo'
+        if 'miércoles' in d or 'miercoles' in d: return 'Miércoles 20 de Mayo'
+        if 'jueves' in d: return 'Jueves 21 de Mayo'
+        return talk.date
+
+    for t in talks:
+        t.normalized_date = normalize_date(t)
+        
+    # Ordenar por prioridad de fecha (Martes, Miercoles, Jueves) y luego por hora
+    sorted_talks = sorted(talks, key=lambda t: (get_date_priority(t), t.time))
+    
+    return render(request, 'charlas/index.html', {'talks': sorted_talks})
 
 
 def talk_detail(request, pk):
@@ -326,7 +347,7 @@ def update_attendance(request, reg_id):
     return JsonResponse({'success': True})
 
 
-@admin_required
+@scanner_or_admin_required
 @require_POST
 def admin_delete_registration(request, reg_id):
     reg = get_object_or_404(Registration, pk=reg_id)

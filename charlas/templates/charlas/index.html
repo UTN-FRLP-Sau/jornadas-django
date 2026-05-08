@@ -4,9 +4,9 @@
 {% block content %}
 <!-- Hero Start -->
 <div class="container-fluid py-5 bg-primary-gradient mb-5" id="home">
-    <div class="container-fluid py-5 m-lg-5">
-        <div class="row g-12">
-            <div class="col-lg-6 text-lg-start mx-4">
+    <div class="container py-5 px-lg-5">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-6 text-center text-lg-start">
                 <h1 class="text-white mb-4 display-4 fw-bold">Jornadas de Formación Profesional IV Edición 2026</h1>
                 <p class="text-white pb-3 fs-5">Las Jornadas de Formación Profesional se han consolidado como un
                     espacio clave para complementar la formación académica,
@@ -80,7 +80,7 @@
                     </div>
                     <h5 class="mt-4 mb-3 text-secondary-gradient">Feria de Stands de Empresas</h5>
                     <p class="mb-0">
-                        <strong>Martes de 15:00 hs a 20:00 hs</strong> <br> Un espacio para dialogar con
+                        <strong>Martes 19 de 15:00 hs a 20:00 hs</strong> <br> Un espacio para dialogar con
                         representantes de empresas, hacer consultas y acercar tu CV.
                     </p>
                 </div>
@@ -207,7 +207,13 @@
         </div>
 
         <div class="row g-4" id="talks-container">
-            {% for talk in talks %}
+            {% regroup talks by normalized_date as date_list %}
+            {% for date_group in date_list %}
+            <div class="col-12 date-header mt-5" data-date="{{ date_group.grouper }}">
+                <h3 class="text-center text-primary fw-bold mb-2">{{ date_group.grouper }}</h3>
+                <hr class="w-25 mx-auto text-primary opacity-75">
+            </div>
+            {% for talk in date_group.list %}
             <div class="col-lg-4 col-md-6 talk-card" data-department="{{ talk.department }}">
                 <div class="feature-item bg-light rounded p-4 h-100 d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start mb-3">
@@ -243,6 +249,7 @@
                     </div>
                 </div>
             </div>
+            {% endfor %}
             {% empty %}
             <div class="col-12 text-center py-5">
                 <h4 class="text-muted">Aún no hay charlas programadas. Vuelve más tarde.</h4>
@@ -374,6 +381,26 @@
                 card.style.display = 'none';
             }
         });
+        
+        // Hide date headers if all their cards are hidden
+        const dateHeaders = document.querySelectorAll('.date-header');
+        dateHeaders.forEach(header => {
+            let nextEl = header.nextElementSibling;
+            let hasVisibleCards = false;
+            while(nextEl && nextEl.classList.contains('talk-card')) {
+                if(nextEl.style.display === 'block') {
+                    hasVisibleCards = true;
+                    break;
+                }
+                nextEl = nextEl.nextElementSibling;
+            }
+            if(hasVisibleCards) {
+                header.style.display = 'block';
+            } else {
+                header.style.display = 'none';
+            }
+        });
+
         const msg = document.getElementById('no-talks-msg');
         if (visibleCount === 0 && cards.length > 0) {
             msg.classList.remove('d-none');

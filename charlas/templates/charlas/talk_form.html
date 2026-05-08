@@ -30,9 +30,13 @@
                                 <label class="form-label fw-bold">{{ form.date.label }}</label>
                                 {{ form.date }}
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">{{ form.time.label }}</label>
-                                {{ form.time }}
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">{{ form.time_start.label }}</label>
+                                {{ form.time_start }}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">{{ form.time_end.label }}</label>
+                                {{ form.time_end }}
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">{{ form.department.label }}</label>
@@ -68,5 +72,37 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmacion de eliminacion -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center fs-5">
+                ¿Estás seguro de que deseas eliminar esta charla y todos sus inscriptos?
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Sí, eliminar charla</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(url) {
+    document.getElementById('deleteForm').action = url;
+    var myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    myModal.show();
+}
+</script>
 {% endblock %}
 {% endwith %}

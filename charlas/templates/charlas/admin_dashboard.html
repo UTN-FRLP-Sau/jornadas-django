@@ -13,6 +13,37 @@
             </a>
         </div>
 
+        <div class="card p-4 mb-4 bg-light">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search-filter" class="form-label fw-bold"><i class="fa fa-search me-2"></i>Buscar Charla</label>
+                    <input type="text" id="search-filter" class="form-control" placeholder="Escribe el nombre..." onkeyup="filterAdminTalks()">
+                </div>
+                <div class="col-md-4">
+                    <label for="day-filter" class="form-label fw-bold"><i class="fa fa-calendar-alt me-2"></i>Filtrar por Día</label>
+                    <select id="day-filter" class="form-select" onchange="filterAdminTalks()">
+                        <option value="Todos">Todos los días</option>
+                        <option value="Martes 19">Martes 19</option>
+                        <option value="Miércoles 20">Miércoles 20</option>
+                        <option value="Jueves 21">Jueves 21</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="career-filter" class="form-label fw-bold"><i class="fa fa-graduation-cap me-2"></i>Filtrar por Departamento</label>
+                    <select id="career-filter" class="form-select" onchange="filterAdminTalks()">
+                        <option value="Todos">Todos los departamentos</option>
+                        <option value="Magistral">Charlas Magistrales</option>
+                        <option value="Civil">Ingeniería Civil</option>
+                        <option value="Industrial">Ingeniería Industrial</option>
+                        <option value="Sistemas">Ingeniería en Sistemas</option>
+                        <option value="Química">Ingeniería Química</option>
+                        <option value="Eléctrica">Ingeniería Eléctrica</option>
+                        <option value="Mecánica">Ingeniería Mecánica</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div class="card p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -28,7 +59,7 @@
                     </thead>
                     <tbody>
                         {% for talk in talks %}
-                        <tr>
+                        <tr class="talk-row" data-title="{{ talk.title|lower }}" data-date="{{ talk.date }}" data-department="{{ talk.department }}">
                             <td>{{ talk.id }}</td>
                             <td>
                                 <span class="fw-bold">{{ talk.title }}</span><br>
@@ -47,10 +78,9 @@
                                     <a href="{% url 'admin_scan' talk.pk %}" class="btn btn-sm btn-outline-success rounded-pill" title="Escanear QRs"><i class="fa fa-qrcode"></i></a>
                                     <a href="{% url 'admin_talk_details' talk.pk %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Ver Asistencias"><i class="fa fa-users"></i></a>
                                     <a href="{% url 'admin_edit_talk' talk.pk %}" class="btn btn-sm btn-outline-warning rounded-pill" title="Editar"><i class="fa fa-edit"></i></a>
-                                    <form method="POST" action="{% url 'admin_delete_talk' talk.pk %}" onsubmit="return confirm('¿Eliminar esta charla y todos sus inscriptos?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar"><i class="fa fa-trash"></i></button>
-                                    </form>
+                                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar" onclick="confirmDelete('{% url 'admin_delete_talk' talk.pk %}')">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -63,5 +93,68 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmacion de eliminacion -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center fs-5">
+                ¿Estás seguro de que deseas eliminar esta charla y todos sus inscriptos?
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Sí, eliminar charla</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(url) {
+    document.getElementById('deleteForm').action = url;
+    var myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    myModal.show();
+}
+
+function filterAdminTalks() {
+    const searchVal = document.getElementById('search-filter').value.toLowerCase();
+    const dayVal = document.getElementById('day-filter').value;
+    const careerVal = document.getElementById('career-filter').value;
+    
+    const rows = document.querySelectorAll('.talk-row');
+    rows.forEach(row => {
+        const title = row.getAttribute('data-title');
+        const date = row.getAttribute('data-date');
+        const dept = row.getAttribute('data-department');
+        
+        let matchSearch = searchVal === '' || title.includes(searchVal);
+        let matchDay = dayVal === 'Todos' || date.includes(dayVal);
+        
+        let matchCareer = false;
+        if (careerVal === 'Todos') {
+            matchCareer = true;
+        } else if (careerVal === 'Magistral') {
+            matchCareer = (dept === 'Magistral');
+        } else {
+            matchCareer = (dept === careerVal || dept === 'Básicas');
+        }
+        
+        if (matchSearch && matchDay && matchCareer) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}
 {% endwith %}
