@@ -50,7 +50,7 @@
                                 </label>
                             </td>
                             <td class="text-end">
-                                {% if request.session.admin_logged_in %}
+                                {% if request.session.admin_logged_in or request.session.scanner_logged_in %}
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="confirmDelete('{% url 'admin_delete_registration' reg.id %}')">
                                     <i class="fa fa-times me-1"></i>Cancelar
                                 </button>

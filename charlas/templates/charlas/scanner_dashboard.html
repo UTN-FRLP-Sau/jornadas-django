@@ -10,6 +10,37 @@
             </div>
         </div>
 
+        <div class="card p-4 mb-4 bg-light">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search-filter" class="form-label fw-bold"><i class="fa fa-search me-2"></i>Buscar Charla</label>
+                    <input type="text" id="search-filter" class="form-control" placeholder="Escribe el nombre..." onkeyup="filterAdminTalks()">
+                </div>
+                <div class="col-md-4">
+                    <label for="day-filter" class="form-label fw-bold"><i class="fa fa-calendar-alt me-2"></i>Filtrar por Día</label>
+                    <select id="day-filter" class="form-select" onchange="filterAdminTalks()">
+                        <option value="Todos">Todos los días</option>
+                        <option value="Martes 19">Martes 19</option>
+                        <option value="Miércoles 20">Miércoles 20</option>
+                        <option value="Jueves 21">Jueves 21</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="career-filter" class="form-label fw-bold"><i class="fa fa-graduation-cap me-2"></i>Filtrar por Departamento</label>
+                    <select id="career-filter" class="form-select" onchange="filterAdminTalks()">
+                        <option value="Todos">Todos los departamentos</option>
+                        <option value="Magistral">Charlas Magistrales</option>
+                        <option value="Civil">Ingeniería Civil</option>
+                        <option value="Industrial">Ingeniería Industrial</option>
+                        <option value="Sistemas">Ingeniería en Sistemas</option>
+                        <option value="Química">Ingeniería Química</option>
+                        <option value="Eléctrica">Ingeniería Eléctrica</option>
+                        <option value="Mecánica">Ingeniería Mecánica</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
         <div class="card p-4">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
@@ -25,7 +56,7 @@
                     </thead>
                     <tbody>
                         {% for talk in talks %}
-                        <tr>
+                        <tr class="talk-row" data-title="{{ talk.title|lower }}" data-date="{{ talk.date }}" data-department="{{ talk.department }}">
                             <td>{{ talk.id }}</td>
                             <td>
                                 <span class="fw-bold">{{ talk.title }}</span><br>
@@ -55,5 +86,40 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterAdminTalks() {
+    const searchVal = document.getElementById('search-filter').value.toLowerCase();
+    const dayVal = document.getElementById('day-filter').value;
+    const careerVal = document.getElementById('career-filter').value;
+    
+    const rows = document.querySelectorAll('.talk-row');
+    rows.forEach(row => {
+        const title = row.getAttribute('data-title');
+        const date = row.getAttribute('data-date');
+        const dept = row.getAttribute('data-department');
+        
+        let matchSearch = searchVal === '' || title.includes(searchVal);
+        let matchDay = dayVal === 'Todos' || date.includes(dayVal);
+        
+        let matchCareer = false;
+        if (careerVal === 'Todos') {
+            matchCareer = true;
+        } else if (careerVal === 'Magistral') {
+            matchCareer = (dept === 'Magistral');
+        } else {
+            matchCareer = (dept === careerVal || dept === 'Básicas');
+        }
+        
+        if (matchSearch && matchDay && matchCareer) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}
 {% endwith %}

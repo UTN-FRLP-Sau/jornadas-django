@@ -3,15 +3,25 @@ from .models import Talk, DEPARTMENT_CHOICES, TARGET_YEAR_CHOICES
 
 
 class TalkForm(forms.ModelForm):
+    time_start = forms.CharField(label='Hora desde', widget=forms.TextInput(attrs={'class': 'form-control', 'type': 'time'}))
+    time_end = forms.CharField(label='Hora hasta', widget=forms.TextInput(attrs={'class': 'form-control', 'type': 'time'}))
+
     class Meta:
         model = Talk
-        fields = ['title', 'description', 'speaker', 'date', 'time', 'department', 'capacity', 'target_year', 'image']
+        fields = ['title', 'description', 'speaker', 'date', 'department', 'capacity', 'target_year', 'image']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Inteligencia Artificial en Ingeniería'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'speaker': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Ing. Juan Pérez'}),
-            'date': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 20 de mayo'}),
-            'time': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 18:00 a 19:00hs'}),
+            'date': forms.Select(
+                choices=[
+                    ('', 'Seleccione un día'),
+                    ('Martes 19 de Mayo', 'Martes 19 de Mayo'),
+                    ('Miércoles 20 de Mayo', 'Miércoles 20 de Mayo'),
+                    ('Jueves 21 de Mayo', 'Jueves 21 de Mayo'),
+                ],
+                attrs={'class': 'form-select'}
+            ),
             'department': forms.Select(attrs={'class': 'form-select'}),
             'capacity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'target_year': forms.Select(attrs={'class': 'form-select'}),
@@ -22,13 +32,33 @@ class TalkForm(forms.ModelForm):
             'description': 'Descripción',
             'speaker': 'Disertante',
             'date': 'Fecha',
-            'time': 'Hora',
             'department': 'Departamento',
             'capacity': 'Cupos Disponibles',
             'target_year': 'Año de Cursada',
             'image': 'Imagen (Logo, foto del orador, etc.) — Opcional',
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.time:
+            parts = self.instance.time.split(' a ')
+            if len(parts) == 2:
+                self.fields['time_start'].initial = parts[0]
+                self.fields['time_end'].initial = parts[1]
+            else:
+                self.fields['time_start'].initial = self.instance.time
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        start = self.cleaned_data.get('time_start')
+        end = self.cleaned_data.get('time_end')
+        if end:
+            instance.time = f"{start} a {end}"
+        else:
+            instance.time = start
+        if commit:
+            instance.save()
+        return instance
 
 class RegistrationForm(forms.Form):
     nombre = forms.CharField(label='Nombre', max_length=100,

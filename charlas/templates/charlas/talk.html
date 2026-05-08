@@ -71,7 +71,12 @@
                                 {{ form.correo_repeat }}
                                 {% if form.correo_repeat.errors %}<div class="text-danger small mt-1">{{ form.correo_repeat.errors.0 }}</div>{% endif %}
                             </div>
-                            <div class="col-12 text-center mt-4">
+                            <div class="col-12 d-flex justify-content-between mt-4 gap-3">
+                                {% if request.session.admin_logged_in or request.session.scanner_logged_in %}
+                                    <a href="{% url 'admin_talk_details' talk.pk %}" class="btn btn-outline-secondary py-3 px-4 rounded-pill">Volver</a>
+                                {% else %}
+                                    <a href="{% url 'index' %}#feature" class="btn btn-outline-secondary py-3 px-4 rounded-pill">Volver</a>
+                                {% endif %}
                                 <button type="submit" class="btn btn-primary-gradient py-3 px-5 rounded-pill w-100">Confirmar Inscripción</button>
                             </div>
                         </div>
