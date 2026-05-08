@@ -5,7 +5,6 @@
     <div class="container py-5 px-lg-5">
         <div class="mb-4 d-flex justify-content-between align-items-start">
             <div>
-                <a href="{% if request.session.scanner_logged_in %}{% url 'scanner_dashboard' %}{% else %}{% url 'admin_dashboard' %}{% endif %}" class="btn btn-outline-secondary rounded-pill mb-4"><i class="fa fa-arrow-left me-2"></i>Volver al Panel</a>
                 <h5 class="text-primary-gradient fw-medium">Control de Asistencia</h5>
                 <h1 class="mb-2">{{ talk.title }}</h1>
                 <p class="text-muted"><i class="fa fa-calendar-alt me-2"></i>{{ talk.date }} — {{ talk.time }} | <i class="fa fa-user me-2"></i>{{ talk.speaker }}</p>
@@ -50,7 +49,7 @@
                                 </label>
                             </td>
                             <td class="text-end">
-                                {% if request.session.admin_logged_in or request.session.scanner_logged_in %}
+                                {% if request.user.is_authenticated %}
                                 <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="confirmDelete('{% url 'admin_delete_registration' reg.id %}')">
                                     <i class="fa fa-times me-1"></i>Cancelar
                                 </button>

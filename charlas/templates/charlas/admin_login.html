@@ -12,14 +12,18 @@
                     <h1 class="mb-0">Acceso Restringido</h1>
                 </div>
                 <div class="card p-4 p-md-5 shadow-sm">
-                    {% if error %}
-                    <div class="alert alert-danger">{{ error }}</div>
+                    {% if form.errors %}
+                    <div class="alert alert-danger">Usuario o contraseña incorrectos.</div>
                     {% endif %}
                     <form method="POST">
                         {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Usuario</label>
+                            <input type="text" name="username" class="form-control" autofocus>
+                        </div>
                         <div class="mb-4">
-                            <label class="form-label fw-bold">PIN de Administrador</label>
-                            {{ form.pin }}
+                            <label class="form-label fw-bold">Contraseña</label>
+                            <input type="password" name="password" class="form-control">
                         </div>
                         <button type="submit" class="btn btn-primary-gradient py-3 w-100 rounded-pill">Ingresar</button>
                     </form>

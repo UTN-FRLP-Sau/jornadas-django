@@ -50,12 +50,12 @@
                         <a href="{% url 'index' %}#sponsors" class="nav-item nav-link">Quiénes nos acompañan</a>
                         <a href="#contact" class="nav-item nav-link">Contacto</a>
                     </div>
-                    {% if request.session.admin_logged_in %}
+                    {% if request.user.is_authenticated  %}
                         <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary-gradient rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Panel Admin</a>
-                        <button type="button" onclick="confirmLogout()" class="btn btn-danger rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Salir</button>
-                    {% elif request.session.scanner_logged_in %}
-                        <a href="{% url 'scanner_dashboard' %}" class="btn btn-secondary-gradient rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Panel Scanner</a>
-                        <button type="button" onclick="confirmLogout()" class="btn btn-danger rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Salir</button>
+                        <form method="POST" action="{% url 'admin_logout' %}" class="d-none d-lg-block">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger rounded-pill py-2 px-4">Salir</button>
+                        </form>
                     {% else %}
                         <a href="{% url 'admin_login' %}" id="admin-btn" class="btn btn-outline-light rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Acceso Admin</a>
                     {% endif %}
