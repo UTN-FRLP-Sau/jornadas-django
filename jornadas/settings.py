@@ -1,11 +1,12 @@
 from pathlib import Path
-import os
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-jornadas-frlp-2026-change-in-production'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -60,6 +61,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = []
 
 MEDIA_URL = '/media/'
@@ -72,13 +74,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'jornadas@frlp.utn.edu.ar'
-EMAIL_HOST_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-DEFAULT_FROM_EMAIL = 'jornadas@frlp.utn.edu.ar'
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 
 # Sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Admin PIN
-ADMIN_PIN = '1234'
-SCANNER_PIN = '1111'
+ADMIN_PIN = config('ADMIN_PIN')
+SCANNER_PIN = config('SCANNER_PIN')

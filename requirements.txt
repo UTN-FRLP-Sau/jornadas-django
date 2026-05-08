@@ -4,6 +4,7 @@ Django==6.0.5
 et_xmlfile==2.0.0
 openpyxl==3.1.5
 pillow==12.2.0
+python-decouple==3.8
 qrcode==8.2
 sqlparse==0.5.5
 tzdata==2026.2
