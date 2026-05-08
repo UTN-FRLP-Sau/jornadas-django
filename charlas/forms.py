@@ -96,8 +96,3 @@ class RegistrationForm(forms.Form):
         if data.get('correo') != data.get('correo_repeat'):
             self.add_error('correo_repeat', 'Los correos no coinciden.')
         return data
-
-
-class AdminLoginForm(forms.Form):
-    pin = forms.CharField(label='PIN', max_length=20,
-                          widget=forms.PasswordInput(attrs={'class': 'form-control form-control-lg', 'placeholder': '••••'}))
