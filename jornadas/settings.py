@@ -67,20 +67,20 @@ STATICFILES_DIRS = []
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+LOGIN_URL = '/admin/login/'
+LOGIN_REDIRECT_URL = '/admin/dashboard/'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST = 'smtp.office365.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 
 # Sessions
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-
-# Admin PIN
-ADMIN_PIN = config('ADMIN_PIN')
-SCANNER_PIN = config('SCANNER_PIN')
