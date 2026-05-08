@@ -10,6 +10,12 @@
                         <i class="fa fa-check-circle text-success" style="font-size: 80px;"></i>
                     </div>
                     <h2 class="mb-4">¡Inscripción Confirmada!</h2>
+                    {% if not email_ok %}
+                    <div class="alert alert-warning mt-3">
+                        Tu inscripción fue registrada pero hubo un problema al enviar el correo. 
+                        Contactate con los organizadores.
+                    </div>
+                    {% endif %}
                     <p class="fs-5 text-muted mb-2">Te inscribiste exitosamente a:</p>
                     <h5 class="mb-4 text-primary">{{ talk.title }}</h5>
                     <p class="text-muted mb-4">Revisá tu correo electrónico: te enviamos un <strong>código QR</strong> que deberás presentar el día del evento para acreditar tu asistencia. También encontrarás un enlace para cancelar tu inscripción en caso de que no puedas asistir.</p>
