@@ -5,12 +5,15 @@
     <div class="container py-5 px-lg-5">
         <div class="mb-4 d-flex justify-content-between align-items-start">
             <div>
-                <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary rounded-pill mb-4"><i class="fa fa-arrow-left me-2"></i>Volver al Panel</a>
+                <a href="{% if request.session.scanner_logged_in %}{% url 'scanner_dashboard' %}{% else %}{% url 'admin_dashboard' %}{% endif %}" class="btn btn-outline-secondary rounded-pill mb-4"><i class="fa fa-arrow-left me-2"></i>Volver al Panel</a>
                 <h5 class="text-primary-gradient fw-medium">Control de Asistencia</h5>
                 <h1 class="mb-2">{{ talk.title }}</h1>
                 <p class="text-muted"><i class="fa fa-calendar-alt me-2"></i>{{ talk.date }} — {{ talk.time }} | <i class="fa fa-user me-2"></i>{{ talk.speaker }}</p>
             </div>
             <div class="pt-2 d-flex gap-2">
+                <a href="{% url 'admin_register_student' talk.pk %}" class="btn btn-outline-primary rounded-pill shadow-sm">
+                    <i class="fa fa-user-plus me-2"></i>Inscribir Alumno
+                </a>
                 <a href="{% url 'admin_scan' talk.pk %}" class="btn btn-outline-success rounded-pill shadow-sm">
                     <i class="fa fa-qrcode me-2"></i>Escanear QRs
                 </a>
@@ -47,10 +50,11 @@
                                 </label>
                             </td>
                             <td class="text-end">
-                                <form method="POST" action="{% url 'admin_delete_registration' reg.id %}" onsubmit="return confirm('¿Cancelar esta inscripción?');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill"><i class="fa fa-times me-1"></i>Cancelar</button>
-                                </form>
+                                {% if request.session.admin_logged_in %}
+                                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill" onclick="confirmDelete('{% url 'admin_delete_registration' reg.id %}')">
+                                    <i class="fa fa-times me-1"></i>Cancelar
+                                </button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}
@@ -62,6 +66,29 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de confirmacion de eliminacion -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Cancelación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center fs-5">
+                ¿Estás seguro de que deseas cancelar esta inscripción?
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">No, volver</button>
+                <form id="deleteForm" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Sí, cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -79,10 +106,16 @@ document.querySelectorAll('.attendance-toggle').forEach(toggle => {
             body: JSON.stringify({ attended: attended })
         })
         .then(r => r.json())
-        .then(data => { if (!data.success) { alert('Error al actualizar'); this.checked = !attended; } })
-        .catch(() => { alert('Error de conexión'); this.checked = !attended; });
+        .then(data => { if (!data.success) { showAlert('Error al actualizar'); this.checked = !attended; } })
+        .catch(() => { showAlert('Error de conexión'); this.checked = !attended; });
     });
 });
+
+function confirmDelete(url) {
+    document.getElementById('deleteForm').action = url;
+    var myModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    myModal.show();
+}
 </script>
 {% endblock %}
 {% endwith %}

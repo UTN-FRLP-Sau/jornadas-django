@@ -13,10 +13,12 @@ urlpatterns = [
 
     # Admin dashboard & CRUD
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('scanner/dashboard/', views.scanner_dashboard, name='scanner_dashboard'),
     path('admin/talk/new/', views.admin_new_talk, name='admin_new_talk'),
     path('admin/talk/<int:pk>/edit/', views.admin_edit_talk, name='admin_edit_talk'),
     path('admin/talk/<int:pk>/delete/', views.admin_delete_talk, name='admin_delete_talk'),
     path('admin/talk/<int:pk>/details/', views.admin_talk_details, name='admin_talk_details'),
+    path('admin/talk/<int:pk>/register/', views.admin_register_student, name='admin_register_student'),
     path('admin/talk/<int:pk>/export/', views.export_attendance, name='export_attendance'),
 
     # Attendance

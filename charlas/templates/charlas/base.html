@@ -27,15 +27,13 @@
     <div class="container-fluid bg-white p-0">
 
         <!-- Navbar Start -->
-        {% with force_white=force_white_nav|default:False %}
-        <div class="container-fluid position-relative p-0" id="home">
+        <div class="container-fluid position-relative p-0">
             <nav id="main-navbar"
-                 class="navbar navbar-expand-lg {% if force_white %}navbar-light bg-white shadow-sm{% else %}navbar-dark{% endif %} px-4 px-lg-5 py-3 py-lg-0 fixed-top"
-                 style="transition: 0.5s;"
-                 data-force-white="{{ force_white|yesno:'true,false' }}">
+                 class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm px-4 px-lg-5 py-3 py-lg-0 fixed-top"
+                 style="transition: 0.5s;">
                 <a href="{% url 'index' %}" class="navbar-brand d-flex align-items-center me-5">
                     <img id="navbar-logo"
-                         src="{% if force_white %}{% static 'charlas/img/logo_dark.png' %}{% else %}{% static 'charlas/img/logo.png' %}{% endif %}"
+                         src="{% static 'charlas/img/logo.png' %}"
                          alt="Logo Jornadas" style="max-height: 50px; transition: 0.5s;">
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -46,19 +44,24 @@
                         <a href="{% url 'index' %}#home" class="nav-item nav-link active">Inicio</a>
                         <a href="{% url 'index' %}#about" class="nav-item nav-link">Evento</a>
                         <a href="{% url 'index' %}#ferias" class="nav-item nav-link">Ferias</a>
+                        <a href="{% url 'index' %}#participacion" class="nav-item nav-link">Participación</a>
+                        <a href="{% url 'index' %}#como-inscribirte" class="nav-item nav-link">Cómo Inscribirme</a>
                         <a href="{% url 'index' %}#feature" class="nav-item nav-link">Charlas</a>
+                        <a href="{% url 'index' %}#sponsors" class="nav-item nav-link">Quiénes nos acompañan</a>
                         <a href="#contact" class="nav-item nav-link">Contacto</a>
                     </div>
                     {% if request.session.admin_logged_in %}
                         <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary-gradient rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Panel Admin</a>
                         <a href="{% url 'admin_logout' %}" class="btn btn-danger rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Salir</a>
+                    {% elif request.session.scanner_logged_in %}
+                        <a href="{% url 'scanner_dashboard' %}" class="btn btn-secondary-gradient rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Panel Scanner</a>
+                        <a href="{% url 'admin_logout' %}" class="btn btn-danger rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Salir</a>
                     {% else %}
-                        <a href="{% url 'admin_login' %}" class="btn btn-outline-primary rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Acceso Admin</a>
+                        <a href="{% url 'admin_login' %}" id="admin-btn" class="btn btn-outline-light rounded-pill py-2 px-4 ms-lg-3 d-none d-lg-block">Acceso Admin</a>
                     {% endif %}
                 </div>
             </nav>
         </div>
-        {% endwith %}
         <!-- Navbar End -->
 
         <!-- Content Start -->
@@ -73,16 +76,31 @@
                         <h4 class="text-white mb-4">Jornadas de Formación Profesional</h4>
                         <p>Plataforma de inscripción a charlas y actividades departamentales.</p>
                         <div class="d-flex justify-content-center mt-4">
-                            <a class="btn btn-outline-light btn-social mx-2" href="#"><i class="fab fa-twitter"></i></a>
-                            <a class="btn btn-outline-light btn-social mx-2" href="#"><i class="fab fa-facebook-f"></i></a>
-                            <a class="btn btn-outline-light btn-social mx-2" href="#"><i class="fab fa-instagram"></i></a>
-                            <a class="btn btn-outline-light btn-social mx-2" href="#"><i class="fab fa-linkedin-in"></i></a>
+                            <a class="btn btn-outline-light btn-social mx-2" href="https://www.instagram.com/utnlaplata?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank"><i class="fab fa-instagram"></i></a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Footer End -->
+    </div>
+
+    <!-- Global Modal for Alerts -->
+    <div class="modal fade" id="globalAlertModal" tabindex="-1" aria-labelledby="globalAlertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="globalAlertModalLabel">Aviso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center fs-5" id="globalAlertModalBody">
+                    <!-- Mensaje aquí -->
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript Libraries -->
@@ -95,18 +113,33 @@
         const LOGO_LIGHT = "{% static 'charlas/img/logo.png' %}";
         window.addEventListener('scroll', function() {
             const navbar = document.getElementById('main-navbar');
-            if (navbar.getAttribute('data-force-white') === 'true') return;
             const logo = document.getElementById('navbar-logo');
+            const adminBtn = document.getElementById('admin-btn');
+            
             if (window.scrollY > 45) {
-                navbar.classList.add('bg-white', 'shadow-sm', 'navbar-light');
-                navbar.classList.remove('navbar-dark');
+                navbar.classList.add('bg-white', 'navbar-light');
+                navbar.classList.remove('bg-primary', 'navbar-dark');
                 logo.src = LOGO_DARK;
+                if (adminBtn) {
+                    adminBtn.classList.remove('btn-outline-light');
+                    adminBtn.classList.add('btn-outline-primary');
+                }
             } else {
-                navbar.classList.remove('bg-white', 'shadow-sm', 'navbar-light');
-                navbar.classList.add('navbar-dark');
+                navbar.classList.remove('bg-white', 'navbar-light');
+                navbar.classList.add('bg-primary', 'navbar-dark');
                 logo.src = LOGO_LIGHT;
+                if (adminBtn) {
+                    adminBtn.classList.remove('btn-outline-primary');
+                    adminBtn.classList.add('btn-outline-light');
+                }
             }
         });
+
+        function showAlert(message) {
+            document.getElementById('globalAlertModalBody').innerText = message;
+            var alertModal = new bootstrap.Modal(document.getElementById('globalAlertModal'));
+            alertModal.show();
+        }
     </script>
 
     {% block scripts %}{% endblock %}
