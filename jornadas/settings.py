@@ -81,3 +81,4 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # Admin PIN
 ADMIN_PIN = '1234'
+SCANNER_PIN = '1111'

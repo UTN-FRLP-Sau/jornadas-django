@@ -1,0 +1,59 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-fluid py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h5 class="text-primary-gradient fw-medium">Administración (Scanner)</h5>
+                <h1 class="mb-0">Control de Asistencia</h1>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título / Depto</th>
+                            <th>Fecha y Hora</th>
+                            <th>Año Cursada</th>
+                            <th>Cupos</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for talk in talks %}
+                        <tr>
+                            <td>{{ talk.id }}</td>
+                            <td>
+                                <span class="fw-bold">{{ talk.title }}</span><br>
+                                <span class="badge bg-secondary">{{ talk.department }}</span>
+                            </td>
+                            <td>{{ talk.date }}<br><small class="text-muted">{{ talk.time }}</small></td>
+                            <td>{{ talk.target_year }}</td>
+                            <td>
+                                {{ talk.registered_count }} / {{ talk.capacity }}
+                                {% if talk.registered_count >= talk.capacity %}
+                                <span class="badge bg-danger">Lleno</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{% url 'admin_scan' talk.pk %}" class="btn btn-sm btn-outline-success rounded-pill" title="Escanear QRs"><i class="fa fa-qrcode"></i></a>
+                                    <a href="{% url 'admin_talk_details' talk.pk %}" class="btn btn-sm btn-outline-primary rounded-pill" title="Ver Asistencias"><i class="fa fa-users"></i></a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No hay charlas creadas todavía.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

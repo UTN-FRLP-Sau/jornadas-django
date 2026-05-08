@@ -30,6 +30,16 @@ def admin_required(view_func):
     return wrapper
 
 
+def scanner_or_admin_required(view_func):
+    """Decorator that allows access to both admin and scanner."""
+    def wrapper(request, *args, **kwargs):
+        if not (request.session.get('admin_logged_in') or request.session.get('scanner_logged_in')):
+            return redirect('admin_login')
+        return view_func(request, *args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+
 def _build_qr_b64(token):
     """Return a base64-encoded PNG of a QR code containing *token*."""
     qr = qrcode.QRCode(version=1, box_size=10, border=5)
@@ -177,6 +187,8 @@ def cancel_registration(request, token):
 def admin_login(request):
     if request.session.get('admin_logged_in'):
         return redirect('admin_dashboard')
+    if request.session.get('scanner_logged_in'):
+        return redirect('scanner_dashboard')
 
     form = AdminLoginForm()
     error = None
@@ -184,9 +196,15 @@ def admin_login(request):
     if request.method == 'POST':
         form = AdminLoginForm(request.POST)
         if form.is_valid():
-            if form.cleaned_data['pin'] == settings.ADMIN_PIN:
+            pin = form.cleaned_data['pin']
+            if pin == settings.ADMIN_PIN:
                 request.session['admin_logged_in'] = True
+                request.session['scanner_logged_in'] = False
                 return redirect('admin_dashboard')
+            elif hasattr(settings, 'SCANNER_PIN') and pin == settings.SCANNER_PIN:
+                request.session['scanner_logged_in'] = True
+                request.session['admin_logged_in'] = False
+                return redirect('scanner_dashboard')
             else:
                 error = 'PIN incorrecto.'
 
@@ -202,6 +220,12 @@ def admin_logout(request):
 def admin_dashboard(request):
     talks = Talk.objects.all()
     return render(request, 'charlas/admin_dashboard.html', {'talks': talks})
+
+
+@scanner_or_admin_required
+def scanner_dashboard(request):
+    talks = Talk.objects.all()
+    return render(request, 'charlas/scanner_dashboard.html', {'talks': talks})
 
 
 @admin_required
@@ -245,7 +269,43 @@ def admin_delete_talk(request, pk):
     return redirect('admin_dashboard')
 
 
-@admin_required
+@scanner_or_admin_required
+def admin_register_student(request, pk):
+    talk = get_object_or_404(Talk, pk=pk)
+    form = RegistrationForm()
+    errors = []
+
+    if request.method == 'POST':
+        if talk.remaining_capacity <= 0:
+            errors = ['Los cupos para esta charla están agotados.']
+        else:
+            form = RegistrationForm(request.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+                if _duplicate_exists(talk, data['dni'], data['legajo']):
+                    errors = ['Ya se encuentra inscripto en esta charla con ese DNI o Legajo.']
+                else:
+                    token = str(uuid.uuid4())
+                    reg = Registration.objects.create(
+                        talk=talk,
+                        nombre=data['nombre'],
+                        apellido=data['apellido'],
+                        dni=data['dni'],
+                        legajo=data['legajo'],
+                        correo=data['correo'],
+                        token=token,
+                        attended=True,
+                    )
+                    _send_confirmation_email(request, reg)
+                    return redirect('admin_talk_details', pk=talk.pk)
+            else:
+                for field_errors in form.errors.values():
+                    errors.extend(field_errors)
+
+    return render(request, 'charlas/talk.html', {'talk': talk, 'form': form, 'errors': errors})
+
+
+@scanner_or_admin_required
 def admin_talk_details(request, pk):
     talk = get_object_or_404(Talk, pk=pk)
     registrations = talk.registrations.all().order_by('apellido', 'nombre')
@@ -255,7 +315,7 @@ def admin_talk_details(request, pk):
     })
 
 
-@admin_required
+@scanner_or_admin_required
 @require_POST
 def update_attendance(request, reg_id):
     import json
@@ -275,13 +335,13 @@ def admin_delete_registration(request, reg_id):
     return redirect('admin_talk_details', pk=talk_id)
 
 
-@admin_required
+@scanner_or_admin_required
 def admin_scan(request, pk):
     talk = get_object_or_404(Talk, pk=pk)
     return render(request, 'charlas/admin_scan.html', {'talk': talk})
 
 
-@admin_required
+@scanner_or_admin_required
 def api_scan(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
@@ -315,7 +375,7 @@ def api_scan(request):
     })
 
 
-@admin_required
+@scanner_or_admin_required
 def export_attendance(request, pk):
     talk = get_object_or_404(Talk, pk=pk)
     registrations = talk.registrations.filter(attended=True).order_by('apellido', 'nombre')

@@ -50,6 +50,15 @@ class RegistrationForm(forms.Form):
 
     def clean(self):
         data = super().clean()
+        
+        dni = data.get('dni')
+        if dni and not dni.isdigit():
+            self.add_error('dni', 'El DNI debe contener solo números.')
+            
+        legajo = data.get('legajo')
+        if legajo and not legajo.isdigit():
+            self.add_error('legajo', 'El legajo debe contener solo números.')
+
         if data.get('dni') != data.get('dni_repeat'):
             self.add_error('dni_repeat', 'Los DNI no coinciden.')
         if data.get('legajo') != data.get('legajo_repeat'):

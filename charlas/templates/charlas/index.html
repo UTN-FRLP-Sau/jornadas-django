@@ -3,7 +3,7 @@
 
 {% block content %}
 <!-- Hero Start -->
-<div class="container-fluid py-5 bg-primary-gradient mb-5">
+<div class="container-fluid py-5 bg-primary-gradient mb-5" id="home">
     <div class="container-fluid py-5 m-lg-5">
         <div class="row g-12">
             <div class="col-lg-6 text-lg-start mx-4">
@@ -15,7 +15,8 @@
                     <br><br>
                     Vas a poder elegir entre múltiples charlas, conversatorios y
                     talleres a cargo de figuras y empresas líderes de la industria y
-                    representantes del sector público y privado.</p>
+                    representantes del sector público y privado.
+                </p>
                 <a href="#feature" class="btn btn-outline-light py-sm-3 px-4 px-sm-5 rounded-pill fs-5">Ver Charlas</a>
             </div>
         </div>
@@ -31,11 +32,16 @@
                 <h5 class="text-primary-gradient fw-medium">Acerca del evento</h5>
                 <h1 class="mb-4">Formación Profesional</h1>
                 <p class="mb-4 fs-5 text-muted">
-                    Es un evento único y emocionante diseñado para inspirar y preparar a la próxima generación de profesionales en ingeniería y tecnología. El objetivo principal de este evento es brindar a los estudiantes y jóvenes interesados en estas áreas una oportunidad única para explorar y experimentar diversos campos de la ingeniería, adquirir conocimientos especializados y habilidades prácticas, y conectarse con expertos y empresas líderes en la industria.
+                    Es un evento único y emocionante diseñado para inspirar y preparar a la próxima generación de
+                    profesionales en ingeniería y tecnología. El objetivo principal de este evento es brindar a los
+                    estudiantes y jóvenes interesados en estas áreas una oportunidad única para explorar y experimentar
+                    diversos campos de la ingeniería, adquirir conocimientos especializados y habilidades prácticas, y
+                    conectarse con expertos y empresas líderes en la industria.
                 </p>
             </div>
             <div class="col-lg-6 text-center">
-                <img class="img-fluid rounded shadow-lg" src="{% static 'charlas/img/about.jpeg' %}" alt="Acerca del evento">
+                <img class="img-fluid rounded shadow-lg" src="{% static 'charlas/img/about.jpeg' %}"
+                    alt="Acerca del evento">
             </div>
         </div>
     </div>
@@ -59,7 +65,8 @@
                     </div>
                     <h5 class="mt-4 mb-3 text-primary-gradient">Feria de Laboratorios</h5>
                     <p class="mb-0">
-                        <strong>Miércoles 20 y Jueves 21 de 15:00 hs a 20:00 hs</strong> <br> Una oportunidad para conocer los
+                        <strong>Miércoles 20 y Jueves 21 de 15:00 hs a 20:00 hs</strong> <br> Una oportunidad para
+                        conocer los
                         laboratorios, centros de investigación y proyectos que se desarrollan en la Facultad.
                     </p>
                 </div>
@@ -84,7 +91,7 @@
 <!-- Ferias End -->
 
 <!-- Process Start -->
-<div class="container-xxl py-5">
+<div class="container-xxl py-5" id="participacion">
     <div class="container py-5 px-lg-5">
         <div class="text-center pb-4">
             <h5 class="text-primary-gradient fw-medium">Metodología</h5>
@@ -93,7 +100,8 @@
         <div class="row gy-5 gx-4 justify-content-center">
             <div class="col-lg-3 col-md-6 text-center pt-4">
                 <div class="position-relative bg-light rounded pt-5 pb-4 px-4 h-100 feature-item">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow" style="width: 100px; height: 100px;">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow"
+                        style="width: 100px; height: 100px;">
                         <i class="fa fa-cog fa-3x text-white"></i>
                     </div>
                     <h5 class="mt-4 mb-3">Registrate</h5>
@@ -102,7 +110,8 @@
             </div>
             <div class="col-lg-3 col-md-6 text-center pt-4">
                 <div class="position-relative bg-light rounded pt-5 pb-4 px-4 h-100 feature-item">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-secondary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow" style="width: 100px; height: 100px;">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-secondary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow"
+                        style="width: 100px; height: 100px;">
                         <i class="fa fa-address-card fa-3x text-white"></i>
                     </div>
                     <h5 class="mt-4 mb-3">Participá de las charlas</h5>
@@ -111,7 +120,8 @@
             </div>
             <div class="col-lg-3 col-md-6 text-center pt-4">
                 <div class="position-relative bg-light rounded pt-5 pb-4 px-4 h-100 feature-item">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow" style="width: 100px; height: 100px;">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-primary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow"
+                        style="width: 100px; height: 100px;">
                         <i class="fa fa-check fa-3x text-white"></i>
                     </div>
                     <h5 class="mt-4 mb-3">Recibí tu certificado</h5>
@@ -120,17 +130,57 @@
             </div>
             <div class="col-lg-3 col-md-6 text-center pt-4">
                 <div class="position-relative bg-light rounded pt-5 pb-4 px-4 h-100 feature-item">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-secondary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow" style="width: 100px; height: 100px;">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-secondary-gradient rounded-circle position-absolute top-0 start-50 translate-middle shadow"
+                        style="width: 100px; height: 100px;">
                         <i class="fa fa-upload fa-3x text-white"></i>
                     </div>
                     <h5 class="mt-4 mb-3">Acreditá tu asistencia</h5>
-                    <p class="mb-0">Una vez que tengas tu certificado de asistencia, deberás cargarlo en un formulario para acreditar tu asistencia y tener presente en las materias correspondientes.</p>
+                    <p class="mb-0">Una vez que tengas tu certificado de asistencia, deberás cargarlo en un formulario
+                        para acreditar tu asistencia y tener presente en las materias correspondientes.</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 <!-- Process End -->
+
+<!-- Como Inscribirte Start -->
+<div class="container-fluid py-5 bg-white" id="como-inscribirte">
+    <div class="container py-5 px-lg-5">
+        <div class="row g-5 align-items-center">
+            <div class="col-lg-6">
+                <h5 class="text-primary-gradient fw-medium">Paso a paso para realizar tu inscripción</h5>
+                <h1 class="mb-4">Cómo inscribirte</h1>
+                <p class="mb-4 fs-5 text-muted">
+                    Para garantizar la acreditación de tu asistencia, deberás participar, como mínimo, en una charla
+                    magistral en alguno de los tres días del evento y en una charla departamental por día perteneciente
+                    a tu carrera o al Departamento de Ciencias Básicas.
+                </p>
+                <p class="mb-4 fs-5 text-muted">
+                    Quienes deseen asistir a más actividades serán bienvenidos, siempre que haya disponibilidad de cupos
+                </p>
+                <ul class="list-unstyled mb-0 mt-4">
+                    <li class="d-flex mb-3 align-items-start"><i
+                            class="fa fa-check text-primary-gradient me-3 mt-1 fs-4"></i><span class="fs-5">Primero te
+                            inscribís a la charla magistral.</span></li>
+                    <li class="d-flex mb-3 align-items-start"><i
+                            class="fa fa-check text-primary-gradient me-3 mt-1 fs-4"></i><span class="fs-5">Después
+                            seleccionas las actividades de tu departamento.</span></li>
+                    <li class="d-flex mb-3 align-items-start"><i
+                            class="fa fa-check text-primary-gradient me-3 mt-1 fs-4"></i><span class="fs-5">Recibirás un
+                            QR de asistencia mediante correo electrónico,</span></li>
+                    <li class="d-flex mb-3 align-items-start"><i
+                            class="fa fa-check text-primary-gradient me-3 mt-1 fs-4"></i><span class="fs-5">¡Listo! Solo
+                            te queda asistir a las actividades.</span></li>
+                </ul>
+            </div>
+            <div class="col-lg-6 text-center">
+                <img class="img-fluid rounded shadow-lg" src="{% static 'charlas/img/paso.jpeg' %}" alt="Paso a paso">
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Como Inscribirte End -->
 
 <!-- Features Start -->
 <div class="container-fluid py-5" id="feature">
@@ -141,8 +191,10 @@
             <div class="row justify-content-center mt-4">
                 <div class="col-md-6 col-lg-4">
                     <label for="career-filter" class="form-label fw-bold">¿De qué departamento sos?</label>
-                    <select class="form-select form-select-lg border-primary shadow-sm" id="career-filter" onchange="filterTalks()">
+                    <select class="form-select form-select-lg border-primary shadow-sm" id="career-filter"
+                        onchange="filterTalks()">
                         <option value="Todos">Seleccioná tu departamento (Mostrar todas)</option>
+                        <option value="Magistral">Charlas Magistrales</option>
                         <option value="Civil">Ingeniería Civil</option>
                         <option value="Industrial">Ingeniería Industrial</option>
                         <option value="Sistemas">Ingeniería en Sistemas</option>
@@ -159,14 +211,17 @@
             <div class="col-lg-4 col-md-6 talk-card" data-department="{{ talk.department }}">
                 <div class="feature-item bg-light rounded p-4 h-100 d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm" style="width: 60px; height: 60px; overflow: hidden; border: 2px solid var(--primary);">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow-sm"
+                            style="width: 60px; height: 60px; overflow: hidden; border: 2px solid var(--primary);">
                             {% if talk.image %}
-                            <img src="{{ talk.image.url }}" alt="Imagen de Charla" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="{{ talk.image.url }}" alt="Imagen de Charla"
+                                style="width: 100%; height: 100%; object-fit: cover;">
                             {% else %}
                             <i class="fa fa-user text-primary fs-3"></i>
                             {% endif %}
                         </div>
-                        <span class="badge {% if talk.department == 'Magistral' %}bg-warning text-dark{% elif talk.department == 'Básicas' %}bg-info text-dark{% else %}bg-secondary{% endif %} px-3 py-2 fs-6 rounded-pill">
+                        <span
+                            class="badge {% if talk.department == 'Magistral' %}bg-warning text-dark{% elif talk.department == 'Básicas' %}bg-info text-dark{% else %}bg-secondary{% endif %} px-3 py-2 fs-6 rounded-pill">
                             {{ talk.department }}
                         </span>
                     </div>
@@ -180,9 +235,10 @@
                             <i class="fa fa-users me-2"></i>Cupos: {% if talk.remaining_capacity > 0 %}{{ talk.remaining_capacity }} disponibles{% else %}Agotados{% endif %}
                         </p>
                         {% if talk.remaining_capacity > 0 %}
-                            <a href="{% url 'talk_register' talk.pk %}" class="btn btn-primary-gradient py-2 px-4 rounded-pill w-100">Inscripción</a>
+                        <a href="{% url 'talk_register' talk.pk %}"
+                            class="btn btn-primary-gradient py-2 px-4 rounded-pill w-100">Inscripción</a>
                         {% else %}
-                            <button class="btn btn-secondary py-2 px-4 rounded-pill w-100" disabled>Cupos Agotados</button>
+                        <button class="btn btn-secondary py-2 px-4 rounded-pill w-100" disabled>Cupos Agotados</button>
                         {% endif %}
                     </div>
                 </div>
@@ -200,29 +256,133 @@
     </div>
 </div>
 <!-- Features End -->
+
+<!-- Sponsors Start -->
+<div class="container-fluid py-5 bg-white" id="sponsors">
+    <div class="container py-5 px-lg-5">
+        <div class="text-center mb-5">
+            <h5 class="text-primary-gradient fw-medium">¡Echa un vistazo!</h5>
+            <h1 class="mb-4">Quiénes nos acompañan</h1>
+        </div>
+        <div class="row g-4 justify-content-center align-items-center">
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/1.Logo-Lovelytics-black-color.png' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/83501_249-SACDE-LOGO.png' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/Cannba_.jpeg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/GRUPO_POSE.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/INFOGESTION.jpg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/INVAP.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/Logotipo_da_JBS_2023.png' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/VACALIN.gif' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/anglia_examinations.jpg' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/autosoft.jfif' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/cia_de_talentos.png' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/cubi.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/edelap.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/geobauen.jpg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/grupo_randazo.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/grupo_techint.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/jit_soluciones.jfif' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/logo_nestle.jpg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img
+                    src="{% static 'charlas/img/phoenix_contact.png' %}" class="img-fluid"
+                    style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor"></div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/pshanesthesia.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/solaer.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/tcs.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/tecplata.jpg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/tycsa.jpeg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/witmo.png' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+            <div class="col-6 col-md-4 col-lg-2 text-center p-3"><img src="{% static 'charlas/img/xtradis.jpeg' %}"
+                    class="img-fluid" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Sponsor">
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Sponsors End -->
 {% endblock %}
 
 {% block scripts %}
 <script>
-function filterTalks() {
-    const filterValue = document.getElementById('career-filter').value;
-    const cards = document.querySelectorAll('.talk-card');
-    let visibleCount = 0;
-    cards.forEach(card => {
-        const dept = card.getAttribute('data-department');
-        if (filterValue === 'Todos' || dept === 'Magistral' || dept === 'Básicas' || dept === filterValue) {
-            card.style.display = 'block';
-            visibleCount++;
+    function filterTalks() {
+        const filterValue = document.getElementById('career-filter').value;
+        const cards = document.querySelectorAll('.talk-card');
+        let visibleCount = 0;
+        cards.forEach(card => {
+            const dept = card.getAttribute('data-department');
+            let show = false;
+
+            if (filterValue === 'Magistral') {
+                show = (dept === 'Magistral');
+            } else if (filterValue === 'Todos') {
+                show = true;
+            } else {
+                show = (dept === filterValue || dept === 'Básicas');
+            }
+
+            if (show) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        const msg = document.getElementById('no-talks-msg');
+        if (visibleCount === 0 && cards.length > 0) {
+            msg.classList.remove('d-none');
         } else {
-            card.style.display = 'none';
+            msg.classList.add('d-none');
         }
-    });
-    const msg = document.getElementById('no-talks-msg');
-    if (visibleCount === 0 && cards.length > 0) {
-        msg.classList.remove('d-none');
-    } else {
-        msg.classList.add('d-none');
     }
-}
+
+    // Aplicar el filtro por defecto ("Todos" -> ocultar magistrales) al cargar la pagina
+    window.addEventListener('DOMContentLoaded', filterTalks);
 </script>
 {% endblock %}
