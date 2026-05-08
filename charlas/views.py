@@ -3,7 +3,6 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import uuid
-import base64
 from io import BytesIO
 
 import qrcode
@@ -13,6 +12,7 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from functools import wraps
 from django.contrib.auth import views as auth_views
 
 from .forms import RegistrationForm, TalkForm
@@ -25,6 +25,15 @@ from openpyxl.styles import Font
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+
+def login_required_json(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({'success': False, 'message': 'No autenticado.'}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
 
 def _build_qr_content(registration):
     return f"{registration.apellido}|{registration.legajo}|{registration.dni}|{registration.talk_id}|{registration.token}"
@@ -78,9 +87,10 @@ def _send_confirmation_email(request, registration):
             msg.as_string()
         )
         connection.close()
+        return True
     except Exception as exc:
         print(f'[EMAIL] No se pudo enviar a {registration.correo}: {exc}')
-        print(f'[EMAIL] Cancel URL (debug): {cancel_url}')
+        return False
 
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -151,8 +161,11 @@ def talk_register(request, pk):
             else:
                 for field_errors in form.errors.values():
                     errors.extend(field_errors)
-
-    return render(request, 'charlas/talk.html', {'talk': talk, 'form': form, 'errors': errors})
+    email_ok = _send_confirmation_email(request, reg)
+    return render(request, 'charlas/success.html', {
+        'talk': talk,
+        'email_ok': email_ok,
+    })
 
 
 def cancel_registration(request, token):
@@ -291,7 +304,8 @@ def admin_scan(request, pk):
     return render(request, 'charlas/admin_scan.html', {'talk': talk})
 
 
-@login_required
+@login_required_json
+@require_POST
 def api_scan(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Método no permitido.'}, status=405)
