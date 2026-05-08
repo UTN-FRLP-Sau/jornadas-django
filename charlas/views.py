@@ -110,48 +110,6 @@ def index(request):
     
     return render(request, 'charlas/index.html', {'talks': sorted_talks})
 
-
-def talk_detail(request, pk):
-    talk = get_object_or_404(Talk, pk=pk)
-    form = RegistrationForm()
-    errors = []
-
-    if request.method == 'POST':
-        if talk.remaining_capacity <= 0:
-            errors = ['Los cupos para esta charla están agotados.']
-        else:
-            form = RegistrationForm(request.POST)
-            if form.is_valid():
-                data = form.cleaned_data
-                # Duplicate check
-                duplicate = Registration.objects.filter(
-                    talk=talk
-                ).filter(
-                    models_Q_or(dni=data['dni'], legajo=data['legajo'])
-                ).exists()
-
-                if duplicate:
-                    errors = ['Ya te encontrás inscripto en esta charla con ese DNI o Legajo.']
-                else:
-                    token = str(uuid.uuid4())
-                    reg = Registration.objects.create(
-                        talk=talk,
-                        nombre=data['nombre'],
-                        apellido=data['apellido'],
-                        dni=data['dni'],
-                        legajo=data['legajo'],
-                        correo=data['correo'],
-                        token=token,
-                    )
-                    _send_confirmation_email(request, reg)
-                    return render(request, 'charlas/success.html', {'talk': talk})
-            else:
-                for field_errors in form.errors.values():
-                    errors.extend(field_errors)
-
-    return render(request, 'charlas/talk.html', {'talk': talk, 'form': form, 'errors': errors})
-
-
 def _duplicate_exists(talk, dni, legajo):
     """Check if a registration with the same DNI or legajo already exists for this talk."""
     from django.db.models import Q
