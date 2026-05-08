@@ -144,7 +144,8 @@ def talk_register(request, pk):
             if form.is_valid():
                 data = form.cleaned_data
                 if _duplicate_exists(talk, data['dni'], data['legajo']):
-                    errors = ['Ya te encontrás inscripto en esta charla con ese DNI o Legajo.']
+                    errors = [
+                        'Ya te encontrás inscripto en esta charla con ese DNI o Legajo.']
                 else:
                     token = str(uuid.uuid4())
                     reg = Registration.objects.create(
@@ -156,16 +157,16 @@ def talk_register(request, pk):
                         correo=data['correo'],
                         token=token,
                     )
-                    _send_confirmation_email(request, reg)
-                    return render(request, 'charlas/success.html', {'talk': talk})
+                    email_ok = _send_confirmation_email(request, reg)
+                    return render(request, 'charlas/success.html', {
+                        'talk': talk,
+                        'email_ok': email_ok,
+                    })
             else:
                 for field_errors in form.errors.values():
                     errors.extend(field_errors)
-    email_ok = _send_confirmation_email(request, reg)
-    return render(request, 'charlas/success.html', {
-        'talk': talk,
-        'email_ok': email_ok,
-    })
+
+    return render(request, 'charlas/talk.html', {'talk': talk, 'form': form, 'errors': errors})
 
 
 def cancel_registration(request, token):
