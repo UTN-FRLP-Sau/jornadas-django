@@ -232,7 +232,15 @@
                         </span>
                     </div>
                     <h5 class="mb-3">{{ talk.title }}</h5>
-                    <p class="mb-3 flex-grow-1">{{ talk.description }}</p>
+                    <div class="mb-3 flex-grow-1">
+                        <p class="mb-1 talk-description" style="
+                            display: -webkit-box;
+                            -webkit-line-clamp: 3;
+                            -webkit-box-orient: vertical;
+                            overflow: hidden;
+                        ">{{ talk.description }}</p>
+                        <button class="btn btn-link p-0 small text-primary" onclick="toggleDesc(this)">Ver más</button>
+                    </div>
                     <div class="mt-auto">
                         <p class="fw-bold mb-1"><i class="fa fa-user me-2"></i>{{ talk.speaker }}</p>
                         <p class="text-primary fw-bold mb-1"><i class="fa fa-calendar-alt me-2"></i>{{ talk.date }} - {{ talk.time }}</p>
@@ -424,6 +432,28 @@
         }
     }
 
+    function toggleDesc(el) {
+        const clamped = el.style.webkitLineClamp;
+        if (clamped) {
+            el.style.webkitLineClamp = '';
+            el.style.overflow = 'visible';
+            el.style.display = 'block';
+        } else {
+            el.style.webkitLineClamp = '3';
+            el.style.overflow = 'hidden';
+            el.style.display = '-webkit-box';
+        }
+    }
+    
+    function toggleDesc(btn) {
+        const p = btn.previousElementSibling;
+        const expanded = btn.textContent === 'Ver menos';
+        p.style.webkitLineClamp = expanded ? '3' : '';
+        p.style.overflow = expanded ? 'hidden' : 'visible';
+        p.style.display = expanded ? '-webkit-box' : 'block';
+        btn.textContent = expanded ? 'Ver más' : 'Ver menos';
+    }
+    
     // Aplicar el filtro por defecto ("Todos" -> ocultar magistrales) al cargar la pagina
     window.addEventListener('DOMContentLoaded', filterTalks);
 </script>
