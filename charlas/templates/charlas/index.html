@@ -237,7 +237,7 @@
                         <p class="fw-bold mb-1"><i class="fa fa-user me-2"></i>{{ talk.speaker }}</p>
                         <p class="text-primary fw-bold mb-1"><i class="fa fa-calendar-alt me-2"></i>{{ talk.date }} - {{ talk.time }}</p>
                         <p class="mb-1 text-muted small"><i class="fa fa-graduation-cap me-2"></i>Para: {{ talk.target_year }}</p>
-                        <p class="mb-3 {% if talk.remaining_capacity <= 0 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %} small">
+                        <p hidden class="mb-3 {% if talk.remaining_capacity <= 0 %}text-danger fw-bold{% else %}text-success fw-bold{% endif %} small">
                             <i class="fa fa-users me-2"></i>Cupos: {% if talk.remaining_capacity > 0 %}{{ talk.remaining_capacity }} disponibles{% else %}Agotados{% endif %}
                         </p>
                         {% if talk.remaining_capacity > 0 %}
