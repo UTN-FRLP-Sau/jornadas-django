@@ -168,15 +168,13 @@ def _generate_ticket(registration):
     img.save(out, format='PNG')
     return out.getvalue()
 
-def _send_reminder(correo, nombre, registrations):
-    talks_html = ''.join([
-        f"<li><b>{r.talk.title}</b> — {r.talk.date}, {r.talk.time}, {r.talk.location or 'A confirmar'}</li>"
-        for r in registrations
-    ])
+
+def _send_reminder(correo, nombre, registrations, fecha_str):
 
     html_body = render_to_string('charlas/email_recordatorio.html', {
         'nombre': nombre,
         'inscripciones': registrations,
+        'fecha': fecha_str,
     })
 
     msg = MIMEMultipart('mixed')
@@ -253,7 +251,7 @@ class Command(BaseCommand):
         for correo, grupo in groupby(regs, key=lambda r: r.correo):
             inscripciones = list(grupo)
             nombre = inscripciones[0].nombre
-            ok = _send_reminder(correo, nombre, inscripciones)
+            ok = _send_reminder(correo, nombre, inscripciones, fecha_str)
             charlas_str = ', '.join([r.talk.title for r in inscripciones])
             if ok:
                 enviados += 1
