@@ -13,6 +13,9 @@ import qrcode
 from PIL import Image, ImageDraw
 from charlas.models import Registration
 from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger('send_reminders')
 
 '''
 0 20 18,19,20 5 * cd /jornadas-django && .venv/bin/python manage.py send_reminders
@@ -251,12 +254,17 @@ class Command(BaseCommand):
             inscripciones = list(grupo)
             nombre = inscripciones[0].nombre
             ok = _send_reminder(correo, nombre, inscripciones)
+            charlas_str = ', '.join([r.talk.title for r in inscripciones])
             if ok:
                 enviados += 1
+                logger.info(
+                    f"OK | {correo} | {len(inscripciones)} charla/s | {charlas_str}")
                 self.stdout.write(self.style.SUCCESS(
                     f'  ✔ {correo} ({len(inscripciones)} charla/s)'))
             else:
                 errores += 1
+                logger.error(
+                    f"ERROR | {correo} | {len(inscripciones)} charla/s | {charlas_str}")
                 self.stdout.write(self.style.ERROR(f'  ✗ {correo}'))
 
         self.stdout.write(self.style.SUCCESS(

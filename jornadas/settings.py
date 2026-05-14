@@ -91,3 +91,29 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'reminders_file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'reminders.log',
+            'formatter': 'reminders',
+        },
+    },
+    'formatters': {
+        'reminders': {
+            'format': '{asctime} {levelname} {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'loggers': {
+        'send_reminders': {
+            'handlers': ['reminders_file'],
+            'level': 'INFO',
+        },
+    },
+}
