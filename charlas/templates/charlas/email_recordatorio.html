@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; background-color:#F4F7FE; font-family:'Helvetica Neue', Arial, sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#F4F7FE; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
+
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(to right, #2b4efe, #00d2ff); border-radius: 16px 16px 0 0; padding: 40px 40px 30px; text-align:center;">
+                            <h1 style="margin:0; color:#ffffff; font-size:28px; font-weight:700; letter-spacing:1px;">
+                                Jornadas de Formación Profesional
+                            </h1>
+                            <p style="margin:8px 0 0; color:#e0f0ff; font-size:15px;">
+                                IV Edición 2026 · UTN La Plata
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Cuerpo -->
+                    <tr>
+                        <td style="background:#ffffff; padding: 40px;">
+
+                            <p style="font-size:18px; color:#0F172B; margin:0 0 8px;">
+                                ¡Hola, <strong>{{ nombre }}</strong>!
+                            </p>
+                            <p style="font-size:15px; color:#666565; margin:0 0 30px;">
+                                Te recordamos que <strong>mañana</strong> tenés las siguientes actividades programadas.
+                                No olvides presentar tu código QR en la entrada de cada charla.
+                            </p>
+
+                            <!-- Charlas -->
+                            {% for reg in inscripciones %}
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px; border-radius:12px; overflow:hidden; border: 1px solid #e8ecf4;">
+                                <tr>
+                                    <td style="background: linear-gradient(to right, #2b4efe, #00d2ff); width:6px; border-radius: 12px 0 0 12px;"></td>
+                                    <td style="padding: 16px 20px; background:#f8faff;">
+                                        <p style="margin:0 0 4px; font-size:16px; font-weight:700; color:#0F172B;">
+                                            {{ reg.talk.title }}
+                                        </p>
+                                        <p style="margin:0 0 2px; font-size:13px; color:#666565;">
+                                            🕐 {{ reg.talk.time }}
+                                        </p>
+                                        <p style="margin:0 0 2px; font-size:13px; color:#666565;">
+                                            📍 {{ reg.talk.location|default:"A confirmar" }}
+                                        </p>
+                                        <p style="margin:4px 0 0;">
+                                            <span style="background:#2b4efe; color:white; font-size:11px; padding:3px 10px; border-radius:20px;">
+                                                {{ reg.talk.department }}
+                                            </span>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endfor %}
+
+                            <p style="font-size:14px; color:#666565; margin: 30px 0 0;">
+                                Encontrás tu(s) entrada(s) con el código QR adjuntas a este correo.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background: linear-gradient(to right, #2b4efe, #00d2ff); border-radius: 0 0 16px 16px; padding: 24px 40px; text-align:center;">
+                            <p style="margin:0; color:#ffffff; font-size:13px;">
+                                UTN · Facultad Regional La Plata
+                            </p>
+                            <p style="margin:4px 0 0; color:#e0f0ff; font-size:12px;">
+                                Este correo fue generado automáticamente, por favor no respondas.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
