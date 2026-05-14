@@ -34,6 +34,8 @@ class Talk(models.Model):
     target_year = models.CharField('Año de Cursada', max_length=50, choices=TARGET_YEAR_CHOICES, default='Todos los años')
     image = models.ImageField('Imagen', upload_to='talk_images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    location = models.CharField(
+        'Ubicación', max_length=255, blank=True, default='')
 
     class Meta:
         verbose_name = 'Charla'

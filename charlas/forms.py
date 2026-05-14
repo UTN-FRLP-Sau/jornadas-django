@@ -8,7 +8,7 @@ class TalkForm(forms.ModelForm):
 
     class Meta:
         model = Talk
-        fields = ['title', 'description', 'speaker', 'date', 'department', 'capacity', 'target_year', 'image']
+        fields = ['title', 'description', 'speaker', 'date', 'department', 'capacity', 'target_year', 'image', 'location']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Inteligencia Artificial en Ingeniería'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -26,6 +26,7 @@ class TalkForm(forms.ModelForm):
             'capacity': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'target_year': forms.Select(attrs={'class': 'form-select'}),
             'image': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/*'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Aula Magna, Pabellón A'}),
         }
         labels = {
             'title': 'Título de la Charla',
@@ -36,6 +37,7 @@ class TalkForm(forms.ModelForm):
             'capacity': 'Cupos Disponibles',
             'target_year': 'Año de Cursada',
             'image': 'Imagen (Logo, foto del orador, etc.) — Opcional',
+            'location': 'Ubicación',
         }
 
     def __init__(self, *args, **kwargs):
