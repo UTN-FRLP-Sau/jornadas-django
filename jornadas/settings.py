@@ -1,5 +1,6 @@
 from pathlib import Path
 from decouple import config
+from datetime import date
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -99,7 +100,7 @@ LOGGING = {
     'handlers': {
         'reminders_file': {
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'reminders.log',
+            'filename': BASE_DIR / 'logs' / f'reminders_{date.today().strftime("%Y-%m-%d")}.log',
             'formatter': 'reminders',
         },
     },
