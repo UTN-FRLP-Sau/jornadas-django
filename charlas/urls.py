@@ -28,6 +28,7 @@ urlpatterns = [
          views.admin_register_student, name='admin_register_student'),
     path('admin/talk/<int:pk>/export/',
          views.export_attendance, name='export_attendance'),
+    path('admin/talks/export/', views.export_talks, name='export_talks'),
 
     # Attendance
     path('admin/attendance/<int:reg_id>/',
@@ -38,4 +39,5 @@ urlpatterns = [
     # QR Scanner
     path('admin/scan/<int:pk>/', views.admin_scan, name='admin_scan'),
     path('admin/api/scan/', views.api_scan, name='api_scan'),
+    
 ]

@@ -368,3 +368,43 @@ def export_attendance(request, pk):
     )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@login_required
+def export_talks(request):
+    talks = Talk.objects.all().order_by('department', 'date', 'time')
+
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)  # eliminar hoja default
+
+    departments = talks.values_list(
+        'department', flat=True).distinct().order_by('department')
+
+    for dept in departments:
+        ws = wb.create_sheet(title=dept[:31])  # Excel limita a 31 chars
+        headers = ['Título', 'Fecha', 'Hora', 'Lugar', 'Disertante',
+                   'Descripcion']
+        ws.append(headers)
+        for col in range(1, len(headers) + 1):
+            ws.cell(row=1, column=col).font = Font(bold=True)
+
+        for talk in talks.filter(department=dept):
+            ws.append([
+                talk.title,
+                talk.date,
+                talk.time,
+                talk.location or 'A confirmar',
+                talk.speaker,
+                talk.description or '',
+            ])
+
+    out = BytesIO()
+    wb.save(out)
+    out.seek(0)
+
+    response = HttpResponse(
+        out.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="charlas_por_departamento.xlsx"'
+    return response

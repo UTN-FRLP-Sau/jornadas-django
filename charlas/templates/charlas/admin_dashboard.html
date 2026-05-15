@@ -8,9 +8,14 @@
                 <h5 class="text-primary-gradient fw-medium">Administración</h5>
                 <h1 class="mb-0">Gestión de Charlas</h1>
             </div>
-            <a href="{% url 'admin_new_talk' %}" class="btn btn-primary-gradient py-2 px-4 rounded-pill">
-                <i class="fa fa-plus me-2"></i>Nueva Charla
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{% url 'export_talks' %}" class="btn btn-outline-success py-2 px-4 rounded-pill">
+                    <i class="fa fa-file-excel me-2"></i>Exportar Charlas
+                </a>
+                <a href="{% url 'admin_new_talk' %}" class="btn btn-primary-gradient py-2 px-4 rounded-pill">
+                    <i class="fa fa-plus me-2"></i>Nueva Charla
+                </a>
+            </div>
         </div>
 
         <div class="card p-4 mb-4 bg-light">
