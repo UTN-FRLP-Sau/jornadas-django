@@ -224,7 +224,7 @@
 {% for dept_key, dept_name, fechas in depts_list %}
 
 <div class="dept-cover">
-    <div class="cronograma-label">Cronograma</div>
+    <div class="cronograma-label" style="color: {{ color }};">Cronograma</div>
     <div class="dept-name">{{ dept_name }}</div>
     <div class="contact-label">CONTACTO</div>
     <div class="contact">consultasjornadas@frlp.utn.edu.ar</div>
@@ -232,9 +232,9 @@
 </div>
 
 {% for fecha, charlas in fechas.items %}
-<div class="date-header">{{ fecha }}</div>
+<div class="date-header" style="color: {{ color }}; border-color: {{ color }};">{{ fecha }}</div>>
 {% for talk in charlas %}
-<div class="talk">
+<div class="talk" style="border-left-color: {{ color }};">
     <div class="talk-header">
         <span class="talk-time">{{ talk.time }}</span> {{ talk.title }}
     </div>

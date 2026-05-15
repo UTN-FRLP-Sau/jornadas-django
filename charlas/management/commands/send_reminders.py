@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 from charlas.models import Registration
 from django.template.loader import render_to_string
 import logging
+from charlas.constants import DEPT_COLORS
 
 logger = logging.getLogger('send_reminders')
 
@@ -30,16 +31,7 @@ FECHA_MAP = {
     date(2026, 5, 21): 'Jueves 21 de Mayo',
 }
 
-DEPT_COLORS = {
-    'Magistral':  "#000000",
-    'Básicas':    "#9A9B9C",
-    'Civil':      '#0e8341',
-    'Industrial': '#c05029',
-    'Sistemas':   '#267e7c',
-    'Química':    '#926d29',
-    'Eléctrica':  "#cc3e45",
-    'Mecánica':   '#2C3E50',
-}
+
 
 
 def _hex_to_rgb(hex_color):

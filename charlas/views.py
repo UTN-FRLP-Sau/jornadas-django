@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 from functools import wraps
 from django.contrib.auth import views as auth_views
 
+from charlas.constants import DEPT_COLORS, DEPT_NAMES, DEPT_ORDER
 from .forms import RegistrationForm, TalkForm
 from .models import Registration, Talk
 
@@ -412,17 +413,6 @@ def export_talks(request):
     return response
 
 PDF_CRONOGRAMA_PATH = settings.BASE_DIR / 'media' / 'cronograma_jfp2026.pdf'
-DEPT_ORDER = ['Magistral', 'Básicas', 'Sistemas', 'Mecánica', 'Industrial', 'Civil', 'Eléctrica', 'Química']
-DEPT_NAMES = {
-    'Magistral': 'Charlas Magistrales',
-    'Básicas': 'Departamento de Ciencias Básicas',
-    'Sistemas': 'Ingeniería en Sistemas de Información',
-    'Mecánica': 'Ingeniería Mecánica',
-    'Industrial': 'Ingeniería Industrial',
-    'Civil': 'Ingeniería Civil',
-    'Eléctrica': 'Ingeniería en Energía Eléctrica',
-    'Química': 'Ingeniería Química',
-}
 
 @login_required
 def export_cronograma_pdf(request):
@@ -448,8 +438,9 @@ def export_cronograma_pdf(request):
                 for fecha in DATE_ORDER
                 if fecha in departments[dept]
             }
+        
         depts_list = [
-            (dept, DEPT_NAMES.get(dept, dept), fechas)
+            (dept, DEPT_NAMES.get(dept, dept), fechas, DEPT_COLORS.get(dept, '#2b4efe'))
             for dept, fechas in departments.items()
             if fechas
         ]
