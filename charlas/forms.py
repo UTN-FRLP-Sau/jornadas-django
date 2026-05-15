@@ -70,15 +70,15 @@ class RegistrationForm(forms.Form):
     dni = forms.CharField(label='DNI', max_length=20,
                           widget=forms.TextInput(attrs={'class': 'form-control'}))
     dni_repeat = forms.CharField(label='Repetir DNI', max_length=20,
-                                 widget=forms.TextInput(attrs={'class': 'form-control'}))
+                                 widget=forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}))
     legajo = forms.CharField(label='Legajo', max_length=20,
                              widget=forms.TextInput(attrs={'class': 'form-control'}))
     legajo_repeat = forms.CharField(label='Repetir Legajo', max_length=20,
-                                    widget=forms.TextInput(attrs={'class': 'form-control'}))
+                                    widget=forms.TextInput(attrs={'class': 'form-control', 'autocomplete': 'off'}))
     correo = forms.EmailField(label='Correo Electrónico',
                               widget=forms.EmailInput(attrs={'class': 'form-control'}))
     correo_repeat = forms.EmailField(label='Repetir Correo Electrónico',
-                                     widget=forms.EmailInput(attrs={'class': 'form-control'}))
+                                     widget=forms.EmailInput(attrs={'class': 'form-control', 'autocomplete': 'off'}))
 
     def clean(self):
         data = super().clean()

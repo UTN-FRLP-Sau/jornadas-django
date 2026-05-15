@@ -96,6 +96,10 @@ document.querySelector('form').addEventListener('submit', function() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
 });
+document.querySelectorAll('[name="dni_repeat"], [name="legajo_repeat"], [name="correo_repeat"]').forEach(el => {
+    el.addEventListener('paste', e => e.preventDefault());
+    el.addEventListener('drop', e => e.preventDefault());
+});
 </script>
 {% endblock %}
 {% endwith %}
