@@ -1,3 +1,5 @@
+from weasyprint import HTML
+from django.template.loader import render_to_string
 from django.core.mail import get_connection
 from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
@@ -8,7 +10,7 @@ from io import BytesIO
 import qrcode
 from django.conf import settings
 from django.core.mail import EmailMessage
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
@@ -408,3 +410,61 @@ def export_talks(request):
     )
     response['Content-Disposition'] = 'attachment; filename="charlas_por_departamento.xlsx"'
     return response
+
+PDF_CRONOGRAMA_PATH = settings.BASE_DIR / 'media' / 'cronograma_jfp2026.pdf'
+DEPT_ORDER = ['Magistral', 'Básicas', 'Sistemas', 'Mecánica', 'Industrial', 'Civil', 'Eléctrica', 'Química']
+DEPT_NAMES = {
+    'Magistral': 'Charlas Magistrales',
+    'Básicas': 'Departamento de Ciencias Básicas',
+    'Sistemas': 'Ingeniería en Sistemas de Información',
+    'Mecánica': 'Ingeniería Mecánica',
+    'Industrial': 'Ingeniería Industrial',
+    'Civil': 'Ingeniería Civil',
+    'Eléctrica': 'Ingeniería en Energía Eléctrica',
+    'Química': 'Ingeniería Química',
+}
+
+@login_required
+def export_cronograma_pdf(request):
+    regenerar = request.GET.get('regenerar') == '1'
+    
+    if not PDF_CRONOGRAMA_PATH.exists() or regenerar:
+        talks = Talk.objects.all().order_by('date', 'time')
+        departments = {dept: {} for dept in DEPT_ORDER}
+        
+        for talk in talks:
+            dept = talk.department
+            if dept not in departments:
+                departments[dept] = {}
+            if talk.date not in departments[dept]:
+                departments[dept][talk.date] = []
+            departments[dept][talk.date].append(talk)
+
+        # Ordenar fechas dentro de cada depto
+        DATE_ORDER = ['Martes 19 de Mayo', 'Miércoles 20 de Mayo', 'Jueves 21 de Mayo']
+        for dept in departments:
+            departments[dept] = {
+                fecha: departments[dept][fecha]
+                for fecha in DATE_ORDER
+                if fecha in departments[dept]
+            }
+        depts_list = [
+            (dept, DEPT_NAMES.get(dept, dept), fechas)
+            for dept, fechas in departments.items()
+            if fechas
+        ]
+
+        html_string = render_to_string('charlas/cronograma_pdf.html', {
+            'departments': departments,
+            'depts_list': depts_list,
+            'dept_names': DEPT_NAMES,
+        })
+        pdf = HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf()
+        PDF_CRONOGRAMA_PATH.write_bytes(pdf)
+
+    return FileResponse(
+        open(PDF_CRONOGRAMA_PATH, 'rb'),
+        content_type='application/pdf',
+        as_attachment=True,
+        filename='cronograma_jfp2026.pdf'
+    )

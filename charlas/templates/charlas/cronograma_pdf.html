@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2cm 2cm 2cm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #1a1a2e;
+            font-size: 11px;
+        }
+
+        /* PORTADA GENERAL */
+        .cover {
+            text-align: center;
+            padding: 80px 40px;
+            border: 3px solid #2b4efe;
+            border-radius: 16px;
+            min-height: 750px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-after: always;
+        }
+
+        .cover h1 {
+            font-size: 32px;
+            color: #2b4efe;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .cover .edicion {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 60px;
+        }
+
+        .cover .cronograma {
+            font-size: 42px;
+            font-weight: bold;
+            color: #2b4efe;
+            text-transform: uppercase;
+        }
+
+        .cover .actividades {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0F172B;
+            text-transform: uppercase;
+            margin-bottom: 60px;
+        }
+
+        .cover .utn {
+            font-size: 18px;
+            color: #2b4efe;
+            font-weight: bold;
+        }
+
+        /* ÍNDICE */
+        .toc {
+            page-break-after: always;
+        }
+
+        .toc h2 {
+            font-size: 20px;
+            color: #2b4efe;
+            border-bottom: 2px solid #2b4efe;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+            font-size: 12px;
+        }
+
+        .toc-item .dept-name {
+            color: #0F172B;
+            font-weight: bold;
+        }
+
+        .toc-item .page-num {
+            color: #2b4efe;
+        }
+
+        /* PORTADA DE DEPARTAMENTO */
+        .dept-cover {
+            text-align: center;
+            padding: 60px 40px;
+            border: 3px solid #2b4efe;
+            border-radius: 16px;
+            min-height: 700px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            page-break-before: always;
+            page-break-after: always;
+        }
+
+        .dept-cover .cronograma-label {
+            font-size: 38px;
+            font-weight: bold;
+            color: #2b4efe;
+            text-transform: uppercase;
+        }
+
+        .dept-cover .dept-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0F172B;
+            margin-top: 8px;
+            margin-bottom: 60px;
+        }
+
+        .dept-cover .contact {
+            font-size: 13px;
+            color: #2b4efe;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .dept-cover .contact-label {
+            font-size: 11px;
+            color: #555;
+        }
+
+        .dept-cover .utn {
+            font-size: 18px;
+            color: #2b4efe;
+            font-weight: bold;
+            margin-top: 40px;
+        }
+
+        /* CHARLAS */
+        .date-header {
+            font-size: 13px;
+            font-weight: bold;
+            color: #2b4efe;
+            border-bottom: 2px solid #2b4efe;
+            padding-bottom: 4px;
+            margin-top: 28px;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
+
+        .talk {
+            margin-bottom: 14px;
+            padding: 10px 14px;
+            border-left: 4px solid #2b4efe;
+            background-color: #f8faff;
+        }
+
+        .talk-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: #0F172B;
+            margin-bottom: 3px;
+        }
+
+        .talk-time {
+            font-size: 11px;
+            font-weight: bold;
+            color: #2b4efe;
+            margin-right: 10px;
+        }
+
+        .talk-meta {
+            font-size: 10px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .talk-description {
+            font-size: 10px;
+            color: #444;
+            line-height: 1.5;
+            margin-top: 4px;
+        }
+
+        .page-footer {
+            text-align: center;
+            font-size: 10px;
+            color: #2b4efe;
+            font-weight: bold;
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Portada general -->
+    <div class="cover">
+        <div>
+            <h1>Jornadas de Formación Profesional</h1>
+            <div class="edicion">IV Edición 2026 · UTN La Plata</div>
+        </div>
+        <div>
+            <div class="cronograma">Cronograma</div>
+            <div class="actividades">de Actividades</div>
+        </div>
+        <div class="utn">✳ UTN · La Plata</div>
+    </div>
+
+<!-- Índice -->
+{% for dept_key, dept_name, fechas in depts_list %}
+<div class="toc-item">
+    <span class="dept-name">{{ forloop.counter }}. {{ dept_name }}</span>
+</div>
+{% endfor %}
+
+<!-- Por departamento -->
+{% for dept_key, dept_name, fechas in depts_list %}
+
+<div class="dept-cover">
+    <div class="cronograma-label">Cronograma</div>
+    <div class="dept-name">{{ dept_name }}</div>
+    <div class="contact-label">CONTACTO</div>
+    <div class="contact">consultasjornadas@frlp.utn.edu.ar</div>
+    <div class="utn">✳ UTN · La Plata</div>
+</div>
+
+{% for fecha, charlas in fechas.items %}
+<div class="date-header">{{ fecha }}</div>
+{% for talk in charlas %}
+<div class="talk">
+    <div class="talk-header">
+        <span class="talk-time">{{ talk.time }}</span> {{ talk.title }}
+    </div>
+    <div class="talk-meta">
+        {% if talk.speaker %}👤 {{ talk.speaker }}{% endif %}
+        {% if talk.location %} · 📍 {{ talk.location }}{% endif %}
+    </div>
+    {% if talk.description %}
+    <div class="talk-description">{{ talk.description }}</div>
+    {% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+
+<div class="page-footer">✳ UTN · La Plata — Jornadas de Formación Profesional 2026</div>
+
+{% endfor %}
+
+</body>
+</html>

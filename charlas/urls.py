@@ -29,6 +29,8 @@ urlpatterns = [
     path('admin/talk/<int:pk>/export/',
          views.export_attendance, name='export_attendance'),
     path('admin/talks/export/', views.export_talks, name='export_talks'),
+    path('admin/cronograma/pdf/', views.export_cronograma_pdf,
+         name='export_cronograma_pdf'),
 
     # Attendance
     path('admin/attendance/<int:reg_id>/',
