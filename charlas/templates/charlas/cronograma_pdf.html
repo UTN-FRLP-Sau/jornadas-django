@@ -214,14 +214,14 @@
     </div>
 
 <!-- Índice -->
-{% for dept_key, dept_name, fechas in depts_list %}
+{% for dept_key, dept_name, fechas, color in depts_list %}
 <div class="toc-item">
     <span class="dept-name">{{ forloop.counter }}. {{ dept_name }}</span>
 </div>
 {% endfor %}
 
 <!-- Por departamento -->
-{% for dept_key, dept_name, fechas in depts_list %}
+{% for dept_key, dept_name, fechas, color in depts_list %}
 
 <div class="dept-cover">
     <div class="cronograma-label" style="color: {{ color }};">Cronograma</div>
