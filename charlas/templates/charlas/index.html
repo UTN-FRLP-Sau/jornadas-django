@@ -195,6 +195,7 @@
                         onchange="filterTalks()">
                         <option value="Todos">Seleccioná tu departamento (Mostrar todas)</option>
                         <option value="Magistral">Charlas Magistrales</option>
+                        <option value="Básicas">Ciencias Básicas</option>
                         <option value="Civil">Ingeniería Civil</option>
                         <option value="Industrial">Ingeniería Industrial</option>
                         <option value="Sistemas">Ingeniería en Sistemas</option>
@@ -392,6 +393,8 @@
 
             if (filterValue === 'Magistral') {
                 show = (dept === 'Magistral');
+            } else if (filterValue === 'Básicas') {
+                show = (dept === 'Básicas');
             } else if (filterValue === 'Todos') {
                 show = true;
             } else {
