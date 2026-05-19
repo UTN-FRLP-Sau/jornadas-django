@@ -1,0 +1,84 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-fluid py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="mb-5">
+            <h5 class="text-primary-gradient fw-medium">Administración</h5>
+            <h1 class="mb-0">Importar Asistencia</h1>
+        </div>
+
+        <div class="card p-4 mb-4">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row align-items-end g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">{{ form.csv_file.label }}</label>
+                        {{ form.csv_file }}
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary-gradient py-2 px-4 rounded-pill w-100">
+                            <i class="fa fa-upload me-2"></i>Procesar
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        {% if results %}
+        <div class="card p-4">
+            {% if talk_ref %}
+            <div class="alert alert-info mb-4">
+                <i class="fa fa-info-circle me-2"></i>
+                Charla detectada: <strong>{{ talk_ref.title }}</strong> — {{ talk_ref.date }}, {{ talk_ref.time }}
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex gap-3">
+                    <span class="badge bg-success fs-6">Actualizados: {{ summary.actualizados }}</span>
+                    <span class="badge bg-warning text-dark fs-6">Ya presentes: {{ summary.ya_presentes }}</span>
+                    <span class="badge bg-danger fs-6">No encontrados: {{ summary.no_encontrados }}</span>
+                </div>
+                <a href="{% url 'export_import_results' %}" class="btn btn-success rounded-pill px-4">
+                    <i class="fa fa-file-excel me-2"></i>Descargar Excel
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Charla</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in results %}
+                        <tr>
+                            <td>{{ r.nombre }}</td>
+                            <td>{{ r.charla }}</td>
+                            <td>
+                                {% if r.estado == 'Actualizado' %}
+                                    <span class="badge bg-success">{{ r.estado }}</span>
+                                {% elif r.estado == 'Ya presente' %}
+                                    <span class="badge bg-warning text-dark">{{ r.estado }}</span>
+                                {% elif r.estado == 'No encontrado' %}
+                                    <span class="badge bg-danger">{{ r.estado }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ r.estado }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+{% endwith %}
