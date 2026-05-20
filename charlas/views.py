@@ -8,6 +8,7 @@ import uuid
 import csv
 import io
 from io import BytesIO
+import re
 
 import qrcode
 from django.conf import settings
@@ -30,6 +31,11 @@ from openpyxl.styles import Font, PatternFill
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+def sanitize_excel(value):
+    if not isinstance(value, str):
+        return value
+    return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', value)
+
 
 def login_required_json(view_func):
     @wraps(view_func)
@@ -486,6 +492,7 @@ def import_attendance(request):
                         'nombre': '-',
                         'charla': '-',
                         'estado': 'Fila inválida',
+                        'raw': raw
                     })
                     continue
 
@@ -515,6 +522,7 @@ def import_attendance(request):
                         'nombre': apellido,
                         'charla': '-',
                         'estado': 'No encontrado',
+                        'raw': raw
                     })
 
             talk_ids = set(r['talk_id'] for r in results if r.get('talk_id'))
@@ -546,7 +554,7 @@ def export_import_results(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = 'Resultados'
-    headers = ['Nombre', 'Charla', 'Estado']
+    headers = ['Nombre', 'Charla', 'Estado', 'Línea CSV']
     ws.append(headers)
     for col in range(1, 4):
         ws.cell(row=1, column=col).font = Font(bold=True)
@@ -559,7 +567,12 @@ def export_import_results(request):
     }
 
     for r in results:
-        ws.append([r['nombre'], r['charla'], r['estado']])
+        ws.append([
+            sanitize_excel(r['nombre']),
+            sanitize_excel(r['charla']),
+            sanitize_excel(r['estado']),
+            sanitize_excel(r.get('raw', '—'))
+        ])
         fill_color = colors.get(r['estado'], 'FFFFFF')
         for col in range(1, 4):
             ws.cell(row=ws.max_row, column=col).fill = PatternFill(

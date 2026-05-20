@@ -52,6 +52,7 @@
                             <th>Nombre</th>
                             <th>Charla</th>
                             <th>Estado</th>
+                            <th>Línea CSV</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,6 +69,13 @@
                                     <span class="badge bg-danger">{{ r.estado }}</span>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ r.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.estado == 'No encontrado' or r.estado == 'Fila inválida' %}
+                                    <small class="text-muted font-monospace">{{ r.raw }}</small>
+                                {% else %}
+                                    —
                                 {% endif %}
                             </td>
                         </tr>
