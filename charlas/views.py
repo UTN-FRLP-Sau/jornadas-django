@@ -159,6 +159,7 @@ def _send_certificate_email(cert):
         alt = MIMEMultipart('alternative')
         alt.attach(MIMEText(html_body, 'html'))
         msg.attach(alt)
+        '''
         # Generar PDF
         archivo_path = settings.MEDIA_ROOT / cert.archivo if cert.archivo else None
 
@@ -173,6 +174,7 @@ def _send_certificate_email(cert):
                 filename=f'certificado_{cert.apellido}_{cert.nombre}.pdf'
             )
             msg.attach(pdf_mime)
+        '''
 
         connection = get_connection()
         connection.open()
@@ -875,9 +877,12 @@ def certificate_emit(request):
             correo=reg.correo,
             config=config,
         )
-        archivo = _generate_certificate_pdf(cert)
-        cert.archivo = archivo
-        cert.save()
+        try:
+            archivo = _generate_certificate_pdf(cert)
+            cert.archivo = archivo
+            cert.save()
+        except Exception as e:
+            print(f'[CERT PDF] Error generando PDF para {cert.dni}: {e}')
 
         # Generar y enviar — por ahora placeholder
         ok = _send_certificate_email(cert)
@@ -970,6 +975,14 @@ def certificate_download(request):
             cert = Certificate.objects.filter(dni=dni).first()
             if cert:
                 cumple = True
+                # Generar PDF si no existe
+                if not cert.archivo:
+                    try:
+                        archivo = _generate_certificate_pdf(cert)
+                        cert.archivo = archivo
+                        cert.save()
+                    except Exception as e:
+                        print(f'[CERT PDF] Error: {e}')
                 # Si no completó la encuesta, redirigir
                 survey_obj = Survey.objects.filter(certificate=cert).first()
                 if not survey_obj or not survey_obj.completada:
@@ -1095,4 +1108,12 @@ def survey(request, dni, step=1):
 
 def survey_done(request, dni):
     cert = get_object_or_404(Certificate, dni=dni)
+    if not cert.archivo:
+        try:
+            from charlas.views import _generate_certificate_pdf
+            archivo = _generate_certificate_pdf(cert)
+            cert.archivo = archivo
+            cert.save()
+        except Exception as e:
+            print(f'[CERT PDF] Error: {e}')
     return render(request, 'charlas/survey_done.html', {'cert': cert})
