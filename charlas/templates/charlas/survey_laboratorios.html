@@ -1,0 +1,70 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+
+                <!-- Progress -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Paso {{ step }} de {{ total_steps }}</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-primary" style="width: {% widthratio step total_steps 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="card p-4 p-md-5 shadow-sm border-0">
+                    <h4 class="mb-4 text-primary fw-bold">Feria de Laboratorios</h4>
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Puntuación general de la Feria de Laboratorios</label>
+                            <div class="d-flex gap-3">
+                                {% for i in "12345" %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="feria_laboratorios_puntuacion" value="{{ i }}" id="feria_lab_{{ i }}" required>
+                                    <label class="form-check-label" for="feria_lab_{{ i }}">{{ i }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mt-1">
+                                <span>Muy malo</span><span>Excelente</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">¿Conocías los laboratorios antes del evento?</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="feria_laboratorios_conocia" value="si" id="conocia_si" required>
+                                    <label class="form-check-label" for="conocia_si">Sí</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="feria_laboratorios_conocia" value="no" id="conocia_no">
+                                    <label class="form-check-label" for="conocia_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Comentarios (opcional)</label>
+                            <textarea name="feria_laboratorios_comentario" class="form-control" rows="3" placeholder="¿Qué laboratorio te resultó más interesante?"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'survey_step' dni=cert.dni step=3 %}" class="btn btn-outline-secondary rounded-pill px-4">Anterior</a>
+                            <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">Siguiente <i class="fa fa-arrow-right ms-2"></i></button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}
