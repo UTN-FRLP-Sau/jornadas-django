@@ -970,6 +970,10 @@ def certificate_download(request):
             cert = Certificate.objects.filter(dni=dni).first()
             if cert:
                 cumple = True
+                # Si no completó la encuesta, redirigir
+                survey_obj = Survey.objects.filter(certificate=cert).first()
+                if not survey_obj or not survey_obj.completada:
+                    return redirect('survey', dni=dni)
                 regs = Registration.objects.filter(
                     dni=dni, attended=True
                 ).select_related('talk').order_by('talk__date', 'talk__time')
