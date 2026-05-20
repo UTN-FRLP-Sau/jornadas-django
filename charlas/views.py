@@ -478,6 +478,7 @@ def import_attendance(request):
         form = AttendanceImportForm(request.POST, request.FILES)
         if form.is_valid():
             csv_file = request.FILES['csv_file']
+            talk_destino = form.cleaned_data['talk']
             decoded = csv_file.read().decode('utf-8')
             reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
 
@@ -500,7 +501,7 @@ def import_attendance(request):
 
                 try:
                     reg = Registration.objects.select_related('talk').get(
-                        token=token, talk_id=talk_id
+                        talk=talk_destino, dni=dni
                     )
                     if reg.attended:
                         estado = 'Ya presente'
@@ -510,19 +511,20 @@ def import_attendance(request):
                         estado = 'Actualizado'
                     results.append({
                         'token': token,
-                        'talk_id': talk_id,
+                        'talk_id': talk_destino.id,
                         'nombre': f"{reg.apellido}, {reg.nombre}",
                         'charla': reg.talk.title,
                         'estado': estado,
+                        'raw': raw,
                     })
                 except Registration.DoesNotExist:
                     results.append({
                         'token': token,
-                        'talk_id': talk_id,
+                        'talk_id': talk_destino.id,
                         'nombre': apellido,
                         'charla': '-',
                         'estado': 'No encontrado',
-                        'raw': raw
+                        'raw': raw,
                     })
 
             talk_ids = set(r['talk_id'] for r in results if r.get('talk_id'))
@@ -534,7 +536,7 @@ def import_attendance(request):
             return render(request, 'charlas/import_attendance.html', {
                 'form': form,
                 'results': results,
-                'talk_ref': talk_ref,
+                'talk_ref': talk_destino,
                 'summary': {
                     'actualizados':   sum(1 for r in results if r['estado'] == 'Actualizado'),
                     'ya_presentes':   sum(1 for r in results if r['estado'] == 'Ya presente'),

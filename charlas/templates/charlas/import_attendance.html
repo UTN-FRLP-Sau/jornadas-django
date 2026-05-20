@@ -12,11 +12,15 @@
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row align-items-end g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-5">
                         <label class="form-label fw-bold">{{ form.csv_file.label }}</label>
                         {{ form.csv_file }}
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">{{ form.talk.label }}</label>
+                        {{ form.talk }}
+                    </div>
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary-gradient py-2 px-4 rounded-pill w-100">
                             <i class="fa fa-upload me-2"></i>Procesar
                         </button>

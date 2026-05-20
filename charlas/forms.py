@@ -106,3 +106,8 @@ class AttendanceImportForm(forms.Form):
         widget=forms.FileInput(
             attrs={'class': 'form-control', 'accept': '.csv'})
     )
+    talk = forms.ModelChoiceField(
+        queryset=Talk.objects.all().order_by('date', 'department', 'title'),
+        label='Charla destino',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
