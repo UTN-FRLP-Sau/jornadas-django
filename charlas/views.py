@@ -26,7 +26,7 @@ from django.contrib.auth import views as auth_views
 
 from charlas.constants import DEPT_COLORS, DEPT_NAMES, DEPT_ORDER
 from .forms import RegistrationForm, TalkForm
-from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate
+from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate, TalkRating, Survey
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
@@ -1063,7 +1063,14 @@ def survey(request, dni, step=1):
     if step == 1:
         template = 'charlas/survey_welcome.html'
 
+
     elif step == 2:
+        context['fields'] = [
+            ('organizacion', 'Organización general del evento'),
+            ('instalaciones', 'Instalaciones y espacio físico'),
+            ('comunicacion', 'Comunicación previa al evento'),
+            ('tematicas', 'Temáticas de las charlas en general'),
+        ]
         template = 'charlas/survey_general.html'
 
     elif step == 3:
