@@ -121,3 +121,26 @@ class Certificate(models.Model):
 
     def __str__(self):
         return f"{self.apellido}, {self.nombre} — {self.codigo}"
+
+
+class EmissionJob(models.Model):
+    STATUS_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('procesando', 'Procesando'),
+        ('completado', 'Completado'),
+        ('error', 'Error'),
+    ]
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pendiente')
+    total = models.PositiveIntegerField(default=0)
+    enviados = models.PositiveIntegerField(default=0)
+    errores = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Job de Emisión'
+        verbose_name_plural = 'Jobs de Emisión'
+
+    def __str__(self):
+        return f"Job {self.id} — {self.status} ({self.enviados}/{self.total})"

@@ -1,3 +1,7 @@
+import threading
+from django.utils import timezone
+from django import forms as django_forms
+from .models import Registration, Talk, Certificate, CertificateConfig
 from weasyprint import HTML
 from django.template.loader import render_to_string
 from django.core.mail import get_connection
@@ -22,7 +26,7 @@ from django.contrib.auth import views as auth_views
 
 from charlas.constants import DEPT_COLORS, DEPT_NAMES, DEPT_ORDER
 from .forms import RegistrationForm, TalkForm
-from .models import Registration, Talk
+from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
@@ -31,6 +35,117 @@ from openpyxl.styles import Font, PatternFill
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+
+def _run_emission(job_id, config_id):
+    import django
+    from charlas.models import Registration, Certificate, CertificateConfig, EmissionJob
+
+    job = EmissionJob.objects.get(id=job_id)
+    config = CertificateConfig.objects.get(id=config_id)
+    job.status = 'procesando'
+    job.save()
+
+    try:
+        dnis = Registration.objects.filter(
+            attended=True).values_list('dni', flat=True).distinct()
+        elegibles = [dni for dni in dnis if _evaluar_alumno(
+            dni, config) and not Certificate.objects.filter(dni=dni).exists()]
+        job.total = len(elegibles)
+        job.save()
+
+        for dni in elegibles:
+            reg = Registration.objects.filter(
+                dni=dni, attended=True).select_related('talk').first()
+            cert = Certificate.objects.create(
+                nombre=reg.nombre,
+                apellido=reg.apellido,
+                dni=reg.dni,
+                legajo=reg.legajo,
+                correo=reg.correo,
+                config=config,
+            )
+            ok = _send_certificate_email(cert)
+            if ok:
+                job.enviados += 1
+            else:
+                job.errores += 1
+            job.save()
+
+        job.status = 'completado'
+        job.finished_at = timezone.now()
+        job.save()
+
+    except Exception as e:
+        job.status = 'error'
+        job.finished_at = timezone.now()
+        job.save()
+        print(f'[EMISSION] Error: {e}')
+
+
+def _send_certificate_email(cert):
+    try:
+        from django.core.mail import get_connection
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from django.template.loader import render_to_string
+
+        html_body = render_to_string('charlas/email_certificado.html', {
+            'cert': cert,
+            'site_url': settings.SITE_URL,
+        })
+
+        msg = MIMEMultipart('mixed')
+        msg['Subject'] = 'Tu certificado — Jornadas de Formación Profesional 2026'
+        msg['From'] = settings.DEFAULT_FROM_EMAIL
+        msg['To'] = cert.correo
+
+        alt = MIMEMultipart('alternative')
+        alt.attach(MIMEText(html_body, 'html'))
+        msg.attach(alt)
+
+        connection = get_connection()
+        connection.open()
+        connection.connection.sendmail(
+            settings.DEFAULT_FROM_EMAIL,
+            [cert.correo],
+            msg.as_string()
+        )
+        connection.close()
+        return True
+    except Exception as exc:
+        print(f'[CERT] Error enviando a {cert.correo}: {exc}')
+        return False
+
+
+def _evaluar_alumno(dni, config):
+    """
+    Devuelve True si el alumno cumple las condiciones de la config.
+    """
+    regs = Registration.objects.filter(
+        dni=dni, attended=True).select_related('talk')
+
+    if not regs.exists():
+        return False
+
+    if config.requiere_magistral:
+        tiene_magistral = regs.filter(talk__department='Magistral').exists()
+        if not tiene_magistral:
+            return False
+
+    if config.modalidad == 'total':
+        return regs.count() >= config.minimo
+
+    elif config.modalidad == 'por_dia':
+        from charlas.constants import FECHA_MAP
+        dias = {}
+        for reg in regs:
+            fecha = reg.talk.date
+            dias.setdefault(fecha, 0)
+            dias[fecha] += 1
+        return all(count >= config.minimo for count in dias.values()) and len(dias) > 0
+
+    return False
+
 def sanitize_excel(value):
     if not isinstance(value, str):
         return value
@@ -590,3 +705,170 @@ def export_import_results(request):
     )
     response['Content-Disposition'] = 'attachment; filename="resultado_importacion.xlsx"'
     return response
+
+
+@login_required
+def certificate_dashboard(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    elegibles = []
+
+    if config:
+        # Obtener todos los DNIs con asistencia
+        dnis = Registration.objects.filter(
+            attended=True).values_list('dni', flat=True).distinct()
+
+        for dni in dnis:
+            if _evaluar_alumno(dni, config):
+                reg = Registration.objects.filter(
+                    dni=dni, attended=True).select_related('talk').first()
+                ya_tiene = Certificate.objects.filter(dni=dni).exists()
+                elegibles.append({
+                    'dni': dni,
+                    'nombre': reg.nombre,
+                    'apellido': reg.apellido,
+                    'legajo': reg.legajo,
+                    'correo': reg.correo,
+                    'charlas': Registration.objects.filter(dni=dni, attended=True).count(),
+                    'ya_emitido': ya_tiene,
+                })
+
+    return render(request, 'charlas/certificate_dashboard.html', {
+        'config': config,
+        'elegibles': elegibles,
+        'total': len(elegibles),
+        'pendientes': sum(1 for e in elegibles if not e['ya_emitido']),
+    })
+
+
+@login_required
+def certificate_config(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+
+    class ConfigForm(django_forms.ModelForm):
+        class Meta:
+            model = CertificateConfig
+            fields = ['modalidad', 'minimo', 'requiere_magistral']
+            widgets = {
+                'modalidad': django_forms.Select(attrs={'class': 'form-select'}),
+                'minimo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+                'requiere_magistral': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            }
+            labels = {
+                'modalidad': 'Modalidad',
+                'minimo': 'Mínimo de charlas',
+                'requiere_magistral': 'Requiere al menos una magistral',
+            }
+
+    form = ConfigForm(instance=config)
+
+    if request.method == 'POST':
+        form = ConfigForm(request.POST, instance=config)
+        if form.is_valid():
+            # Desactivar configs anteriores
+            CertificateConfig.objects.update(activa=False)
+            nueva = form.save(commit=False)
+            nueva.activa = True
+            nueva.save()
+            return redirect('certificate_dashboard')
+
+    return render(request, 'charlas/certificate_config.html', {'form': form, 'config': config})
+
+
+@login_required
+def certificate_emit(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    if not config:
+        return redirect('certificate_dashboard')
+
+    dnis = Registration.objects.filter(
+        attended=True).values_list('dni', flat=True).distinct()
+    emitidos = 0
+    errores = 0
+
+    for dni in dnis:
+        if not _evaluar_alumno(dni, config):
+            continue
+        if Certificate.objects.filter(dni=dni).exists():
+            continue
+
+        reg = Registration.objects.filter(
+            dni=dni, attended=True).select_related('talk').first()
+
+        cert = Certificate.objects.create(
+            nombre=reg.nombre,
+            apellido=reg.apellido,
+            dni=reg.dni,
+            legajo=reg.legajo,
+            correo=reg.correo,
+            config=config,
+        )
+
+        # Generar y enviar — por ahora placeholder
+        ok = _send_certificate_email(cert)
+        if ok:
+            emitidos += 1
+        else:
+            errores += 1
+
+    return render(request, 'charlas/certificate_emit_result.html', {
+        'emitidos': emitidos,
+        'errores': errores,
+    })
+
+
+@login_required
+def certificate_emit(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    if not config:
+        return redirect('certificate_dashboard')
+
+    # Si hay un job procesando, redirigir al status
+    job_activo = EmissionJob.objects.filter(status='procesando').first()
+    if job_activo:
+        return redirect('certificate_emit_status', job_id=job_activo.id)
+
+    if request.method == 'POST':
+        job = EmissionJob.objects.create()
+        t = threading.Thread(target=_run_emission, args=(
+            job.id, config.id), daemon=True)
+        t.start()
+        return redirect('certificate_emit_status', job_id=job.id)
+
+    return render(request, 'charlas/certificate_emit_confirm.html', {'config': config})
+
+
+@login_required
+def certificate_emit_status(request, job_id):
+    job = get_object_or_404(EmissionJob, id=job_id)
+    return render(request, 'charlas/certificate_emit_status.html', {'job': job})
+
+
+@login_required
+def certificate_emit_status_api(request, job_id):
+    job = get_object_or_404(EmissionJob, id=job_id)
+    return JsonResponse({
+        'status': job.status,
+        'total': job.total,
+        'enviados': job.enviados,
+        'errores': job.errores,
+        'finished': job.status in ('completado', 'error'),
+    })
+
+
+def certificate_validate(request):
+    cert = None
+    error = None
+
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+        codigo = request.POST.get('codigo', '').strip()
+
+        try:
+            cert = Certificate.objects.get(dni=dni, codigo=codigo)
+        except Certificate.DoesNotExist:
+            error = 'No se encontró un certificado con ese DNI y código.'
+
+    return render(request, 'charlas/certificate_validate.html', {
+        'cert': cert,
+        'error': error,
+    })

@@ -1,0 +1,76 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-5">
+                <div class="text-center mb-5">
+                    <h5 class="text-primary-gradient fw-medium">Jornadas de Formación Profesional</h5>
+                    <h1 class="mb-0">Validar Certificado</h1>
+                </div>
+
+                <div class="card p-4 p-md-5 mb-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">DNI</label>
+                            <input type="text" name="dni" class="form-control" placeholder="Ej: 40123456" required>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Código de validación</label>
+                            <input type="text" name="codigo" class="form-control" placeholder="Ej: 7mGXpAEQ" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary-gradient py-3 w-100 rounded-pill">
+                            Validar
+                        </button>
+                    </form>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger text-center">
+                    <i class="fa fa-times-circle me-2"></i>{{ error }}
+                </div>
+                {% endif %}
+
+                {% if cert %}
+                <div class="card p-4 border-0 shadow-lg">
+                    <div class="text-center mb-4">
+                        <i class="fa fa-check-circle text-success mb-3" style="font-size:60px;"></i>
+                        <h4 class="mb-1">Certificado válido</h4>
+                        <p class="text-muted small">Emitido el {{ cert.emitido_at|date:"d/m/Y" }}</p>
+                    </div>
+                    <table class="table table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Nombre</td>
+                            <td class="fw-bold">{{ cert.apellido }}, {{ cert.nombre }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">DNI</td>
+                            <td class="fw-bold">{{ cert.dni }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Legajo</td>
+                            <td class="fw-bold">{{ cert.legajo }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Código</td>
+                            <td class="fw-bold text-primary" style="letter-spacing:2px;">{{ cert.codigo }}</td>
+                        </tr>
+                    </table>
+                    {% if cert.archivo %}
+                    <div class="text-center mt-4">
+                        <a href="{{ cert.archivo.url }}" class="btn btn-primary-gradient rounded-pill px-4">
+                            <i class="fa fa-download me-2"></i>Descargar Certificado
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

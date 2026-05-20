@@ -1,0 +1,96 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-fluid py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h5 class="text-primary-gradient fw-medium">Administración</h5>
+                <h1 class="mb-0">Certificados</h1>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'certificate_config' %}" class="btn btn-outline-secondary py-2 px-4 rounded-pill">
+                    <i class="fa fa-cog me-2"></i>Configurar
+                </a>
+                {% if pendientes > 0 %}
+                <a href="{% url 'certificate_emit' %}" class="btn btn-primary-gradient py-2 px-4 rounded-pill">
+                    <i class="fa fa-paper-plane me-2"></i>Emitir {{ pendientes }} certificados
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if not config %}
+        <div class="alert alert-warning">
+            No hay una configuración activa. <a href="{% url 'certificate_config' %}">Configurá las condiciones</a> para emitir certificados.
+        </div>
+        {% else %}
+        <div class="card p-4 mb-4 bg-light">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <p class="mb-1 text-muted small">Modalidad</p>
+                    <p class="fw-bold mb-0">{{ config.get_modalidad_display }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1 text-muted small">Mínimo de charlas</p>
+                    <p class="fw-bold mb-0">{{ config.minimo }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1 text-muted small">Requiere magistral</p>
+                    <p class="fw-bold mb-0">{% if config.requiere_magistral %}Sí{% else %}No{% endif %}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex gap-3">
+                    <span class="badge bg-primary fs-6">Total elegibles: {{ total }}</span>
+                    <span class="badge bg-success fs-6">Pendientes: {{ pendientes }}</span>
+                    <span class="badge bg-secondary fs-6">Ya emitidos: {{ total|add:"-"|add:pendientes }}</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Apellido y Nombre</th>
+                            <th>DNI</th>
+                            <th>Legajo</th>
+                            <th>Correo</th>
+                            <th class="text-center">Charlas</th>
+                            <th class="text-center">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in elegibles %}
+                        <tr>
+                            <td class="fw-bold">{{ e.apellido }}, {{ e.nombre }}</td>
+                            <td>{{ e.dni }}</td>
+                            <td>{{ e.legajo }}</td>
+                            <td>{{ e.correo }}</td>
+                            <td class="text-center">{{ e.charlas }}</td>
+                            <td class="text-center">
+                                {% if e.ya_emitido %}
+                                <span class="badge bg-secondary">Ya emitido</span>
+                                {% else %}
+                                <span class="badge bg-success">Pendiente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">Ningún alumno cumple las condiciones actuales.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

@@ -1,0 +1,30 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <div class="card p-5 shadow-lg border-0 rounded-3">
+                    <i class="fa fa-paper-plane text-primary mb-4" style="font-size: 60px;"></i>
+                    <h2 class="mb-3">Emitir Certificados</h2>
+                    <p class="text-muted mb-4">
+                        Se emitirán certificados a todos los alumnos que cumplan la condición actual:<br>
+                        <strong>{{ config }}</strong>
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'certificate_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                        <form method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">
+                                Confirmar y Emitir
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

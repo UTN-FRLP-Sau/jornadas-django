@@ -46,4 +46,19 @@ urlpatterns = [
     path('admin/scan/<int:pk>/', views.admin_scan, name='admin_scan'),
     path('admin/api/scan/', views.api_scan, name='api_scan'),
     
+    # Certificados
+    path('admin/certificados/', views.certificate_dashboard,
+         name='certificate_dashboard'),
+    path('admin/certificados/config/',
+         views.certificate_config, name='certificate_config'),
+    path('admin/certificados/emitir/',
+         views.certificate_emit, name='certificate_emit'),
+    path('admin/certificados/emitir/',
+         views.certificate_emit, name='certificate_emit'),
+    path('admin/certificados/emitir/<int:job_id>/',
+         views.certificate_emit_status, name='certificate_emit_status'),
+    path('admin/certificados/emitir/<int:job_id>/api/',
+         views.certificate_emit_status_api, name='certificate_emit_status_api'),
+    path('certificado/validar/', views.certificate_validate,
+         name='certificate_validate'),
 ]
