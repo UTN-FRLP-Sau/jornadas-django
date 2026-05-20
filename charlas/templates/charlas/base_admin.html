@@ -1,0 +1,76 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 80px;">
+    <div class="row">
+
+        <!-- Toggle button -->
+        <button id="sidebar-toggle" class="btn btn-sm btn-outline-primary" 
+            style="position: fixed; top: 80px; left: 10px; z-index: 200;">
+            <i class="fa fa-bars"></i>
+        </button>
+
+        <!-- Sidebar -->
+        <div id="sidebar" class="col-lg-2 col-md-3 d-none d-md-block bg-white shadow-sm min-vh-100 py-4 px-0" 
+            style="position: fixed; top: 70px; left: 0; z-index: 100; transition: 0.3s;">
+            <div class="px-3 mb-4">
+                <h6 class="text-muted text-uppercase small fw-bold">Panel Admin</h6>
+            </div>
+            <nav class="nav flex-column">
+                <a href="{% url 'admin_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                    <i class="fa fa-list me-2"></i>Charlas
+                </a>
+                <a href="{% url 'import_attendance' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'import_attendance' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                    <i class="fa fa-upload me-2"></i>Importar Asistencia
+                </a>
+                <a href="{% url 'export_talks' %}" class="nav-link px-3 py-2 text-dark">
+                    <i class="fa fa-file-excel me-2"></i>Exportar Charlas
+                </a>
+                <a href="{% url 'export_cronograma_pdf' %}" class="nav-link px-3 py-2 text-dark">
+                    <i class="fa fa-file-pdf me-2"></i>Cronograma PDF
+                </a>
+                <hr class="mx-3">
+                <div class="px-3 mb-2">
+                    <h6 class="text-muted text-uppercase small fw-bold">Certificados</h6>
+                </div>
+                <a href="{% url 'certificate_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'certificate_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                    <i class="fa fa-certificate me-2"></i>Panel
+                </a>
+                <a href="{% url 'certificate_config' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'certificate_config' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                    <i class="fa fa-cog me-2"></i>Configurar
+                </a>
+            </nav>
+        </div>
+
+        <!-- Contenido principal -->
+        <div id="main-content" class="col-lg-10 col-md-9 ms-auto py-4 px-4" style="transition: 0.3s;">
+            {% block admin_content %}{% endblock %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+{% endwith %}
+
+{% block scripts %}
+<script>
+const toggle = document.getElementById('sidebar-toggle');
+const sidebar = document.getElementById('sidebar');
+const main = document.getElementById('main-content');
+let collapsed = false;
+
+toggle.addEventListener('click', () => {
+    collapsed = !collapsed;
+    if (collapsed) {
+        sidebar.style.transform = 'translateX(-100%)';
+        main.style.marginLeft = '0';
+        main.style.width = '100%';
+    } else {
+        sidebar.style.transform = 'translateX(0)';
+        main.style.marginLeft = '';
+        main.style.width = '';
+    }
+});
+</script>
+{% endblock %}
