@@ -37,6 +37,10 @@ urlpatterns = [
          views.update_attendance, name='update_attendance'),
     path('admin/registration/<int:reg_id>/delete/',
          views.admin_delete_registration, name='admin_delete_registration'),
+    path('admin/attendance/import/',
+         views.import_attendance, name='import_attendance'),
+    path('admin/attendance/import/export/',
+         views.export_import_results, name='export_import_results'),
 
     # QR Scanner
     path('admin/scan/<int:pk>/', views.admin_scan, name='admin_scan'),

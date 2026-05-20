@@ -5,7 +5,10 @@ from email.mime.image import MIMEImage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import uuid
+import csv
+import io
 from io import BytesIO
+import re
 
 import qrcode
 from django.conf import settings
@@ -22,12 +25,17 @@ from .forms import RegistrationForm, TalkForm
 from .models import Registration, Talk
 
 import openpyxl
-from openpyxl.styles import Font
+from openpyxl.styles import Font, PatternFill
 
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+def sanitize_excel(value):
+    if not isinstance(value, str):
+        return value
+    return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', value)
+
 
 def login_required_json(view_func):
     @wraps(view_func)
@@ -459,3 +467,126 @@ def export_cronograma_pdf(request):
         as_attachment=True,
         filename='cronograma_jfp2026.pdf'
     )
+
+
+@login_required
+def import_attendance(request):
+    from .forms import AttendanceImportForm
+    form = AttendanceImportForm()
+
+    if request.method == 'POST':
+        form = AttendanceImportForm(request.POST, request.FILES)
+        if form.is_valid():
+            csv_file = request.FILES['csv_file']
+            talk_destino = form.cleaned_data['talk']
+            decoded = csv_file.read().decode('utf-8')
+            reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
+
+            results = []
+            for row in reader:
+                raw = row['NOMBRE'].strip('"')
+                parts = raw.split('|')
+                if len(parts) < 5:
+                    results.append({
+                        'token': raw,
+                        'talk_id': None,
+                        'nombre': '-',
+                        'charla': '-',
+                        'estado': 'Fila inválida',
+                        'raw': raw
+                    })
+                    continue
+
+                apellido, legajo, dni, talk_id, token = parts[0], parts[1], parts[2], parts[3], parts[4]
+
+                try:
+                    reg = Registration.objects.select_related('talk').get(
+                        talk=talk_destino, dni=dni
+                    )
+                    if reg.attended:
+                        estado = 'Ya presente'
+                    else:
+                        reg.attended = True
+                        reg.save()
+                        estado = 'Actualizado'
+                    results.append({
+                        'token': token,
+                        'talk_id': talk_destino.id,
+                        'nombre': f"{reg.apellido}, {reg.nombre}",
+                        'charla': reg.talk.title,
+                        'estado': estado,
+                        'raw': raw,
+                    })
+                except Registration.DoesNotExist:
+                    results.append({
+                        'token': token,
+                        'talk_id': talk_destino.id,
+                        'nombre': apellido,
+                        'charla': '-',
+                        'estado': 'No encontrado',
+                        'raw': raw,
+                    })
+
+            talk_ids = set(r['talk_id'] for r in results if r.get('talk_id'))
+            talk_ref = Talk.objects.filter(
+                pk__in=talk_ids).first() if talk_ids else None
+
+            request.session['import_results'] = results
+
+            return render(request, 'charlas/import_attendance.html', {
+                'form': form,
+                'results': results,
+                'talk_ref': talk_destino,
+                'summary': {
+                    'actualizados':   sum(1 for r in results if r['estado'] == 'Actualizado'),
+                    'ya_presentes':   sum(1 for r in results if r['estado'] == 'Ya presente'),
+                    'no_encontrados': sum(1 for r in results if r['estado'] == 'No encontrado'),
+                }
+            })
+
+    return render(request, 'charlas/import_attendance.html', {'form': form})
+
+
+@login_required
+def export_import_results(request):
+    results = request.session.get('import_results', [])
+    if not results:
+        return redirect('import_attendance')
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Resultados'
+    headers = ['Nombre', 'Charla', 'Estado', 'Línea CSV']
+    ws.append(headers)
+    for col in range(1, 4):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    colors = {
+        'Actualizado':   'C6EFCE',
+        'Ya presente':   'FFEB9C',
+        'No encontrado': 'FFC7CE',
+        'Fila inválida': 'D9D9D9',
+    }
+
+    for r in results:
+        ws.append([
+            sanitize_excel(r['nombre']),
+            sanitize_excel(r['charla']),
+            sanitize_excel(r['estado']),
+            sanitize_excel(r.get('raw', '—'))
+        ])
+        fill_color = colors.get(r['estado'], 'FFFFFF')
+        for col in range(1, 4):
+            ws.cell(row=ws.max_row, column=col).fill = PatternFill(
+                start_color=fill_color, end_color=fill_color, fill_type='solid'
+            )
+
+    out = BytesIO()
+    wb.save(out)
+    out.seek(0)
+    response = HttpResponse(
+        out.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="resultado_importacion.xlsx"'
+    return response

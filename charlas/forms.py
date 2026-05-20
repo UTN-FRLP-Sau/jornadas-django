@@ -98,3 +98,16 @@ class RegistrationForm(forms.Form):
         if data.get('correo') != data.get('correo_repeat'):
             self.add_error('correo_repeat', 'Los correos no coinciden.')
         return data
+
+
+class AttendanceImportForm(forms.Form):
+    csv_file = forms.FileField(
+        label='Archivo CSV',
+        widget=forms.FileInput(
+            attrs={'class': 'form-control', 'accept': '.csv'})
+    )
+    talk = forms.ModelChoiceField(
+        queryset=Talk.objects.all().order_by('date', 'department', 'title'),
+        label='Charla destino',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
