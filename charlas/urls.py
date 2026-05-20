@@ -68,4 +68,6 @@ urlpatterns = [
     path('certificado/encuesta/<str:dni>/', views.survey, name='survey'),
     path('certificado/encuesta/<str:dni>/<int:step>/',
          views.survey, name='survey_step'),
+    path('certificado/encuesta/<str:dni>/listo/',
+         views.survey_done, name='survey_done'),
 ]

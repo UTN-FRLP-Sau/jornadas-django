@@ -161,11 +161,11 @@ def _send_certificate_email(cert):
         msg.attach(alt)
         # Generar PDF
         archivo_path = settings.MEDIA_ROOT / cert.archivo if cert.archivo else None
-        
+
         if archivo_path and archivo_path.exists():
             with open(archivo_path, 'rb') as f:
                 pdf_bytes = f.read()
-            
+
             from email.mime.application import MIMEApplication
             pdf_mime = MIMEApplication(pdf_bytes, _subtype='pdf')
             pdf_mime.add_header(
@@ -986,3 +986,102 @@ def certificate_download(request):
         'error': error,
         'submitted': request.method == 'POST',
     })
+
+
+def survey(request, dni, step=1):
+    cert = get_object_or_404(Certificate, dni=dni)
+    survey_obj, _ = Survey.objects.get_or_create(certificate=cert)
+
+    if survey_obj.completada:
+        return redirect('survey_done', dni=dni)
+
+    # Charlas asistidas (excluye magistrales del conteo pero las incluye para encuesta)
+    regs = Registration.objects.filter(
+        dni=dni, attended=True
+    ).select_related('talk').order_by('talk__date', 'talk__time')
+
+    # 1 bienvenida + 2 generales + 3 empresas + 4 laboratorios + N charlas
+    total_steps = 4 + regs.count()
+
+    if request.method == 'POST':
+        if step == 2:
+            survey_obj.organizacion = request.POST.get('organizacion')
+            survey_obj.instalaciones = request.POST.get('instalaciones')
+            survey_obj.comunicacion = request.POST.get('comunicacion')
+            survey_obj.tematicas = request.POST.get('tematicas')
+            survey_obj.comentario_general = request.POST.get(
+                'comentario_general', '')
+            survey_obj.save()
+
+        elif step == 3:
+            survey_obj.feria_empresas_puntuacion = request.POST.get(
+                'feria_empresas_puntuacion')
+            survey_obj.feria_empresas_contacto = request.POST.get(
+                'feria_empresas_contacto') == 'si'
+            survey_obj.feria_empresas_comentario = request.POST.get(
+                'feria_empresas_comentario', '')
+            survey_obj.save()
+
+        elif step == 4:
+            survey_obj.feria_laboratorios_puntuacion = request.POST.get(
+                'feria_laboratorios_puntuacion')
+            survey_obj.feria_laboratorios_conocia = request.POST.get(
+                'feria_laboratorios_conocia') == 'si'
+            survey_obj.feria_laboratorios_comentario = request.POST.get(
+                'feria_laboratorios_comentario', '')
+            survey_obj.save()
+
+        elif step >= 5:
+            talk_index = step - 5
+            if talk_index < regs.count():
+                reg = regs[talk_index]
+                TalkRating.objects.update_or_create(
+                    survey=survey_obj,
+                    talk=reg.talk,
+                    defaults={
+                        'puntuacion_disertante': request.POST.get('puntuacion_disertante'),
+                        'puntuacion_contenido': request.POST.get('puntuacion_contenido'),
+                        'comentario': request.POST.get('comentario', ''),
+                    }
+                )
+
+        if step >= total_steps:
+            survey_obj.completada = True
+            survey_obj.save()
+            return redirect('survey_done', dni=dni)
+
+        return redirect('survey_step', dni=dni, step=step + 1)
+
+    # GET — determinar qué mostrar
+    context = {
+        'cert': cert,
+        'step': step,
+        'total_steps': total_steps,
+        'survey': survey_obj,
+    }
+
+    if step == 1:
+        template = 'charlas/survey_welcome.html'
+
+    elif step == 2:
+        template = 'charlas/survey_general.html'
+
+    elif step == 3:
+        template = 'charlas/survey_empresas.html'
+
+    elif step == 4:
+        template = 'charlas/survey_laboratorios.html'
+
+    elif step >= 5:
+        talk_index = step - 5
+        if talk_index < regs.count():
+            context['reg'] = regs[talk_index]
+            context['talk_num'] = talk_index + 1
+        template = 'charlas/survey_talk.html'
+
+    return render(request, template, context)
+
+
+def survey_done(request, dni):
+    cert = get_object_or_404(Certificate, dni=dni)
+    return render(request, 'charlas/survey_done.html', {'cert': cert})
