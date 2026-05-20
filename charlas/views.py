@@ -132,13 +132,15 @@ def _evaluar_alumno(dni, config):
         if not tiene_magistral:
             return False
 
-    if config.modalidad == 'total':
-        return regs.count() >= config.minimo
+    # Excluir magistrales del conteo
+    regs_no_magistral = regs.exclude(talk__department='Magistral')
 
+    if config.modalidad == 'total':
+        return regs_no_magistral.count() >= config.minimo
+    
     elif config.modalidad == 'por_dia':
-        from charlas.constants import FECHA_MAP
         dias = {}
-        for reg in regs:
+        for reg in regs_no_magistral:
             fecha = reg.talk.date
             dias.setdefault(fecha, 0)
             dias[fecha] += 1

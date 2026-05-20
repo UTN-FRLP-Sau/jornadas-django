@@ -81,9 +81,9 @@
                             </td>
                         </tr>
                         {% endfor %}
-                        {% empty %}
+                        {% if not elegibles %}
                         <tr><td colspan="6" class="text-center text-muted py-4">Ningún alumno cumple las condiciones actuales.</td></tr>
-                        {% endfor %}
+                        {% endif %}
                     </tbody>
                 </table>
             </div>
