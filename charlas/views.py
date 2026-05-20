@@ -30,11 +30,68 @@ from .models import Registration, Talk, CertificateConfig, EmissionJob, Certific
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
-
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+
+def _generate_certificate_pdf(cert):
+    template_path = settings.BASE_DIR / 'charlas' / 'static' / \
+        'charlas' / 'img' / 'template_certificado.pdf'
+    output_path = settings.MEDIA_ROOT / \
+        'certificados' / f'cert_{cert.codigo}.pdf'
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Crear overlay con el texto
+    overlay_buffer = BytesIO()
+    c = canvas.Canvas(overlay_buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)  # 842 x 595 pts
+
+    # Apellido — mayúsculas, centrado
+    c.setFont('Helvetica-Bold', 28)
+    c.setFillColor(colors.HexColor('#0F172B'))
+    apellido = cert.apellido.upper()
+    c.drawCentredString(width / 2, height / 2 + 20, apellido)
+
+    # Nombre — title case
+    c.setFont('Helvetica', 24)
+    nombre = cert.nombre.title()
+    c.drawCentredString(width / 2, height / 2 - 20, nombre)
+
+    # DNI — más pequeño
+    c.setFont('Helvetica', 14)
+    c.setFillColor(colors.HexColor('#666565'))
+    c.drawCentredString(width / 2, height / 2 - 55, f'DNI: {cert.dni}')
+
+    # Frase de validación — abajo, pequeña
+    c.setFont('Helvetica', 9)
+    c.setFillColor(colors.HexColor('#999999'))
+    validate_url = f'{settings.SITE_URL}/certificado/validar/'
+    c.drawCentredString(
+        width / 2, 60, f'Validá este certificado ingresando el código {cert.codigo} en: {validate_url}')
+
+    c.save()
+    overlay_buffer.seek(0)
+
+    # Superponer sobre el template
+    template_pdf = PdfReader(str(template_path))
+    overlay_pdf = PdfReader(overlay_buffer)
+
+    writer = PdfWriter()
+    page = template_pdf.pages[0]
+    page.merge_page(overlay_pdf.pages[0])
+    writer.add_page(page)
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    return f'certificados/cert_{cert.codigo}.pdf'
+
+
 
 def _run_emission(job_id, config_id):
     import django
@@ -102,6 +159,20 @@ def _send_certificate_email(cert):
         alt = MIMEMultipart('alternative')
         alt.attach(MIMEText(html_body, 'html'))
         msg.attach(alt)
+        # Generar PDF
+        archivo_path = settings.MEDIA_ROOT / cert.archivo if cert.archivo else None
+        
+        if archivo_path and archivo_path.exists():
+            with open(archivo_path, 'rb') as f:
+                pdf_bytes = f.read()
+            
+            from email.mime.application import MIMEApplication
+            pdf_mime = MIMEApplication(pdf_bytes, _subtype='pdf')
+            pdf_mime.add_header(
+                'Content-Disposition', 'attachment',
+                filename=f'certificado_{cert.apellido}_{cert.nombre}.pdf'
+            )
+            msg.attach(pdf_mime)
 
         connection = get_connection()
         connection.open()
@@ -804,6 +875,9 @@ def certificate_emit(request):
             correo=reg.correo,
             config=config,
         )
+        archivo = _generate_certificate_pdf(cert)
+        cert.archivo = archivo
+        cert.save()
 
         # Generar y enviar — por ahora placeholder
         ok = _send_certificate_email(cert)

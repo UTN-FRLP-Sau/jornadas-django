@@ -144,3 +144,47 @@ class EmissionJob(models.Model):
 
     def __str__(self):
         return f"Job {self.id} — {self.status} ({self.enviados}/{self.total})"
+
+
+class Survey(models.Model):
+    certificate = models.OneToOneField(
+        Certificate, on_delete=models.CASCADE, related_name='survey')
+    # Generales
+    organizacion = models.PositiveSmallIntegerField(null=True, blank=True)
+    instalaciones = models.PositiveSmallIntegerField(null=True, blank=True)
+    comunicacion = models.PositiveSmallIntegerField(null=True, blank=True)
+    tematicas = models.PositiveSmallIntegerField(null=True, blank=True)
+    comentario_general = models.TextField(blank=True, default='')
+    # Feria empresas
+    feria_empresas_puntuacion = models.PositiveSmallIntegerField(
+        null=True, blank=True)
+    feria_empresas_contacto = models.BooleanField(null=True, blank=True)
+    feria_empresas_comentario = models.TextField(blank=True, default='')
+    # Feria laboratorios
+    feria_laboratorios_puntuacion = models.PositiveSmallIntegerField(
+        null=True, blank=True)
+    feria_laboratorios_conocia = models.BooleanField(null=True, blank=True)
+    feria_laboratorios_comentario = models.TextField(blank=True, default='')
+    # Control
+    completada = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Encuesta'
+        verbose_name_plural = 'Encuestas'
+
+
+class TalkRating(models.Model):
+    survey = models.ForeignKey(
+        Survey, on_delete=models.CASCADE, related_name='talk_ratings')
+    talk = models.ForeignKey(Talk, on_delete=models.CASCADE)
+    puntuacion_disertante = models.PositiveSmallIntegerField(
+        null=True, blank=True)
+    puntuacion_contenido = models.PositiveSmallIntegerField(
+        null=True, blank=True)
+    comentario = models.TextField(blank=True, default='')
+
+    class Meta:
+        verbose_name = 'Puntuación de Charla'
+        verbose_name_plural = 'Puntuaciones de Charlas'
+        unique_together = ('survey', 'talk')
