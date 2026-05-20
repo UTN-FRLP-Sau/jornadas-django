@@ -1,0 +1,81 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+
+                <!-- Progress -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Paso {{ step }} de {{ total_steps }}</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-primary" style="width: {% widthratio step total_steps 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="card p-4 p-md-5 shadow-sm border-0">
+                    <h6 class="text-muted mb-1">Charla {{ talk_num }}</h6>
+                    <h4 class="mb-1 text-primary fw-bold">{{ reg.talk.title }}</h4>
+                    <p class="text-muted small mb-4">
+                        <i class="fa fa-user me-1"></i>{{ reg.talk.speaker }} &nbsp;·&nbsp;
+                        <i class="fa fa-calendar-alt me-1"></i>{{ reg.talk.date }} &nbsp;·&nbsp;
+                        <span class="badge bg-secondary">{{ reg.talk.department }}</span>
+                    </p>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Puntuación del disertante</label>
+                            <div class="d-flex gap-3">
+                                {% for i in "12345" %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="puntuacion_disertante" value="{{ i }}" id="disertante_{{ i }}" required>
+                                    <label class="form-check-label" for="disertante_{{ i }}">{{ i }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mt-1">
+                                <span>Muy malo</span><span>Excelente</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Puntuación del contenido</label>
+                            <div class="d-flex gap-3">
+                                {% for i in "12345" %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="puntuacion_contenido" value="{{ i }}" id="contenido_{{ i }}" required>
+                                    <label class="form-check-label" for="contenido_{{ i }}">{{ i }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mt-1">
+                                <span>Muy malo</span><span>Excelente</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Comentarios (opcional)</label>
+                            <textarea name="comentario" class="form-control" rows="3" placeholder="¿Qué te pareció la charla?"></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'survey_step' dni=cert.dni step=step|add:'-1' %}" class="btn btn-outline-secondary rounded-pill px-4">Anterior</a>
+                            <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">
+                                {% if step == total_steps %}Finalizar{% else %}Siguiente{% endif %}
+                                <i class="fa fa-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}
