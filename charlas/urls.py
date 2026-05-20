@@ -63,4 +63,9 @@ urlpatterns = [
          name='certificate_validate'),
     path('certificado/descarga/', views.certificate_download,
          name='certificate_download'),
+    
+    # Encuesta
+    path('certificado/encuesta/<str:dni>/', views.survey, name='survey'),
+    path('certificado/encuesta/<str:dni>/<int:step>/',
+         views.survey, name='survey_step'),
 ]
