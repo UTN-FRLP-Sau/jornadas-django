@@ -1,3 +1,5 @@
+import string
+import secrets
 from django.db import models
 
 DEPARTMENT_CHOICES = [
@@ -71,3 +73,51 @@ class Registration(models.Model):
 
     def __str__(self):
         return f"{self.apellido}, {self.nombre} → {self.talk.title}"
+
+
+def generate_cert_code():
+    chars = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(8))
+
+
+class CertificateConfig(models.Model):
+    MODALIDAD_CHOICES = [
+        ('total', 'Total de charlas'),
+        ('por_dia', 'Por día'),
+    ]
+    modalidad = models.CharField(
+        'Modalidad', max_length=10, choices=MODALIDAD_CHOICES, default='total')
+    minimo = models.PositiveIntegerField('Mínimo de charlas', default=1)
+    requiere_magistral = models.BooleanField(
+        'Requiere magistral', default=False)
+    activa = models.BooleanField('Configuración activa', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Configuración de Certificados'
+        verbose_name_plural = 'Configuraciones de Certificados'
+
+    def __str__(self):
+        return f"{self.get_modalidad_display()} — mín. {self.minimo} {'+ magistral' if self.requiere_magistral else ''}"
+
+
+class Certificate(models.Model):
+    nombre = models.CharField('Nombre', max_length=100)
+    apellido = models.CharField('Apellido', max_length=100)
+    dni = models.CharField('DNI', max_length=20)
+    legajo = models.CharField('Legajo', max_length=20)
+    correo = models.EmailField('Correo')
+    codigo = models.CharField('Código', max_length=8,
+                              unique=True, default=generate_cert_code)
+    archivo = models.FileField(
+        'Archivo', upload_to='certificados/', blank=True, null=True)
+    emitido_at = models.DateTimeField('Emitido el', auto_now_add=True)
+    config = models.ForeignKey(
+        CertificateConfig, on_delete=models.SET_NULL, null=True)
+
+    class Meta:
+        verbose_name = 'Certificado'
+        verbose_name_plural = 'Certificados'
+
+    def __str__(self):
+        return f"{self.apellido}, {self.nombre} — {self.codigo}"
