@@ -61,4 +61,6 @@ urlpatterns = [
          views.certificate_emit_status_api, name='certificate_emit_status_api'),
     path('certificado/validar/', views.certificate_validate,
          name='certificate_validate'),
+    path('certificado/descarga/', views.certificate_download,
+         name='certificate_download'),
 ]

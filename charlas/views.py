@@ -859,6 +859,7 @@ def certificate_emit_status_api(request, job_id):
 
 def certificate_validate(request):
     cert = None
+    regs = []
     error = None
 
     if request.method == 'POST':
@@ -867,10 +868,47 @@ def certificate_validate(request):
 
         try:
             cert = Certificate.objects.get(dni=dni, codigo=codigo)
+            regs = Registration.objects.filter(
+                dni=dni, attended=True
+            ).select_related('talk').order_by('talk__date', 'talk__time')
         except Certificate.DoesNotExist:
             error = 'No se encontró un certificado con ese DNI y código.'
 
     return render(request, 'charlas/certificate_validate.html', {
         'cert': cert,
+        'regs': regs,
         'error': error,
+    })
+
+
+def certificate_download(request):
+    cert = None
+    regs = []
+    cumple = False
+    error = None
+
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+
+        if not dni:
+            error = 'Ingresá tu DNI.'
+        else:
+            cert = Certificate.objects.filter(dni=dni).first()
+            if cert:
+                cumple = True
+                regs = Registration.objects.filter(
+                    dni=dni, attended=True
+                ).select_related('talk').order_by('talk__date', 'talk__time')
+            else:
+                regs = Registration.objects.filter(
+                    dni=dni, attended=True
+                ).select_related('talk').order_by('talk__date', 'talk__time')
+                cumple = False
+
+    return render(request, 'charlas/certificate_download.html', {
+        'cert': cert,
+        'regs': regs,
+        'cumple': cumple,
+        'error': error,
+        'submitted': request.method == 'POST',
     })
