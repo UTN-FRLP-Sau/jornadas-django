@@ -1028,44 +1028,79 @@ def survey(request, dni, step=1):
     if survey_obj.completada:
         return redirect('survey_done', dni=dni)
 
-    # Charlas asistidas (excluye magistrales del conteo pero las incluye para encuesta)
     regs = Registration.objects.filter(
         dni=dni, attended=True
     ).select_related('talk').order_by('talk__date', 'talk__time')
 
-    # 1 bienvenida + 2 generales + 3 empresas + 4 laboratorios + N charlas
-    total_steps = 4 + regs.count()
+    # paso 1: bienvenida, 2: datos generales, 3: evaluación general
+    # 4: feria empresas, 5: feria laboratorios, 6+N: charlas, último: final
+    total_steps = 5 + regs.count() + 1  # +1 para la página final
 
     if request.method == 'POST':
         if step == 2:
-            survey_obj.organizacion = request.POST.get('organizacion')
-            survey_obj.instalaciones = request.POST.get('instalaciones')
-            survey_obj.comunicacion = request.POST.get('comunicacion')
-            survey_obj.tematicas = request.POST.get('tematicas')
-            survey_obj.comentario_general = request.POST.get(
-                'comentario_general', '')
+            survey_obj.carrera = request.POST.get('carrera', '')
+            survey_obj.anio_cursada = request.POST.get('anio_cursada', '')
             survey_obj.save()
 
         elif step == 3:
-            survey_obj.feria_empresas_puntuacion = request.POST.get(
-                'feria_empresas_puntuacion')
-            survey_obj.feria_empresas_contacto = request.POST.get(
-                'feria_empresas_contacto') == 'si'
-            survey_obj.feria_empresas_comentario = request.POST.get(
-                'feria_empresas_comentario', '')
+            survey_obj.evaluacion_general = request.POST.get(
+                'evaluacion_general', '')
+            survey_obj.aporte_formacion = request.POST.get(
+                'aporte_formacion', '')
+            survey_obj.interes_tematicas = request.POST.get(
+                'interes_tematicas', '')
+            survey_obj.organizacion_general = request.POST.get(
+                'organizacion_general') or None
+            survey_obj.matriz_variedad = request.POST.get(
+                'matriz_variedad', '')
+            survey_obj.matriz_disertantes = request.POST.get(
+                'matriz_disertantes', '')
+            survey_obj.matriz_horarios = request.POST.get(
+                'matriz_horarios', '')
+            survey_obj.matriz_informacion = request.POST.get(
+                'matriz_informacion', '')
+            survey_obj.matriz_inscripcion = request.POST.get(
+                'matriz_inscripcion', '')
+            survey_obj.matriz_acreditacion = request.POST.get(
+                'matriz_acreditacion', '')
+            survey_obj.matriz_espacios = request.POST.get(
+                'matriz_espacios', '')
+            survey_obj.matriz_colaboradores = request.POST.get(
+                'matriz_colaboradores', '')
+            survey_obj.lo_mejor = request.POST.get('lo_mejor', '')
+            survey_obj.a_mejorar = request.POST.get('a_mejorar', '')
             survey_obj.save()
 
         elif step == 4:
-            survey_obj.feria_laboratorios_puntuacion = request.POST.get(
-                'feria_laboratorios_puntuacion')
-            survey_obj.feria_laboratorios_conocia = request.POST.get(
-                'feria_laboratorios_conocia') == 'si'
-            survey_obj.feria_laboratorios_comentario = request.POST.get(
-                'feria_laboratorios_comentario', '')
+            survey_obj.asistio_feria_empresas = request.POST.get(
+                'asistio_feria_empresas') == 'si'
+            if survey_obj.asistio_feria_empresas:
+                survey_obj.evaluacion_feria_empresas = request.POST.get(
+                    'evaluacion_feria_empresas', '')
+                survey_obj.utilidad_feria_empresas = request.POST.get(
+                    'utilidad_feria_empresas', '')
+                survey_obj.stands_interesantes = request.POST.get(
+                    'stands_interesantes', '')
+                survey_obj.mejoras_feria_empresas = request.POST.get(
+                    'mejoras_feria_empresas', '')
             survey_obj.save()
 
-        elif step >= 5:
-            talk_index = step - 5
+        elif step == 5:
+            survey_obj.asistio_feria_laboratorios = request.POST.get(
+                'asistio_feria_laboratorios') == 'si'
+            if survey_obj.asistio_feria_laboratorios:
+                survey_obj.evaluacion_feria_laboratorios = request.POST.get(
+                    'evaluacion_feria_laboratorios', '')
+                survey_obj.conocio_proyectos = request.POST.get(
+                    'conocio_proyectos', '')
+                survey_obj.lab_interesante = request.POST.get(
+                    'lab_interesante', '')
+                survey_obj.mejoras_feria_laboratorios = request.POST.get(
+                    'mejoras_feria_laboratorios', '')
+            survey_obj.save()
+
+        elif step >= 6 and step <= 5 + regs.count():
+            talk_index = step - 6
             if talk_index < regs.count():
                 reg = regs[talk_index]
                 TalkRating.objects.update_or_create(
@@ -1078,14 +1113,15 @@ def survey(request, dni, step=1):
                     }
                 )
 
-        if step >= total_steps:
+        elif step == total_steps:
+            survey_obj.proxima_edicion = request.POST.get(
+                'proxima_edicion', '')
             survey_obj.completada = True
             survey_obj.save()
             return redirect('survey_done', dni=dni)
 
         return redirect('survey_step', dni=dni, step=step + 1)
 
-    # GET — determinar qué mostrar
     context = {
         'cert': cert,
         'step': step,
@@ -1095,29 +1131,33 @@ def survey(request, dni, step=1):
 
     if step == 1:
         template = 'charlas/survey_welcome.html'
-
-
     elif step == 2:
-        context['fields'] = [
-            ('organizacion', 'Organización general del evento'),
-            ('instalaciones', 'Instalaciones y espacio físico'),
-            ('comunicacion', 'Comunicación previa al evento'),
-            ('tematicas', 'Temáticas de las charlas en general'),
+        template = 'charlas/survey_datos.html'
+    elif step == 3:
+        context['matriz_items'] = [
+            ('matriz_variedad', 'Variedad de temáticas'),
+            ('matriz_disertantes', 'Nivel de exposición de los disertantes'),
+            ('matriz_horarios', 'Organización de horarios'),
+            ('matriz_informacion', 'Información brindada previamente'),
+            ('matriz_inscripcion', 'Sistema de inscripción'),
+            ('matriz_acreditacion', 'Sistema de acreditación de asistencia'),
+            ('matriz_espacios', 'Distribución de aulas y espacios'),
+            ('matriz_colaboradores', 'Acompañamiento de colaboradores'),
         ]
         template = 'charlas/survey_general.html'
-
-    elif step == 3:
-        template = 'charlas/survey_empresas.html'
-
     elif step == 4:
+        template = 'charlas/survey_empresas.html'
+    elif step == 5:
         template = 'charlas/survey_laboratorios.html'
-
-    elif step >= 5:
-        talk_index = step - 5
-        if talk_index < regs.count():
-            context['reg'] = regs[talk_index]
-            context['talk_num'] = talk_index + 1
+    elif step >= 6 and step <= 5 + regs.count():
+        talk_index = step - 6
+        context['reg'] = regs[talk_index]
+        context['talk_num'] = talk_index + 1
         template = 'charlas/survey_talk.html'
+    elif step == total_steps:
+        template = 'charlas/survey_final.html'
+    else:
+        return redirect('survey', dni=dni)
 
     return render(request, template, context)
 
@@ -1176,4 +1216,228 @@ def attendance_dashboard(request):
         'total_inscriptos': total_inscriptos,
         'total_presentes': total_presentes,
         'total_charlas': total_charlas,
+    })
+
+
+@login_required
+def survey_dashboard(request):
+    carreras = Survey.objects.exclude(carrera='').values_list(
+        'carrera', flat=True).distinct()
+    anios = Survey.objects.exclude(anio_cursada='').values_list(
+        'anio_cursada', flat=True).distinct()
+    total = Survey.objects.filter(completada=True).count()
+
+    return render(request, 'charlas/survey_dashboard.html', {
+        'carreras': sorted(carreras),
+        'anios': sorted(anios),
+        'total': total,
+    })
+
+
+@login_required
+def survey_dashboard_api(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+
+    qs = Survey.objects.filter(completada=True)
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    total = qs.count()
+    if total == 0:
+        return JsonResponse({'total': 0})
+
+    # Evaluación general
+    def dist(field):
+        from django.db.models import Count
+        return dict(qs.exclude(**{f'{field}': ''}).values_list(field).annotate(n=Count('id')))
+
+    # Promedio organización
+    from django.db.models import Avg
+    org_avg = qs.filter(organizacion_general__isnull=False).aggregate(
+        avg=Avg('organizacion_general'))['avg']
+
+    # Matriz
+    matriz_fields = [
+        ('matriz_variedad', 'Variedad de temáticas'),
+        ('matriz_disertantes', 'Nivel de disertantes'),
+        ('matriz_horarios', 'Organización de horarios'),
+        ('matriz_informacion', 'Información previa'),
+        ('matriz_inscripcion', 'Sistema de inscripción'),
+        ('matriz_acreditacion', 'Sistema de acreditación'),
+        ('matriz_espacios', 'Distribución de espacios'),
+        ('matriz_colaboradores', 'Acompañamiento de colaboradores'),
+    ]
+    orden_matriz = ['Muy bueno', 'Bueno', 'Regular', 'Malo', 'Muy malo']
+    matriz_data = []
+    for field, label in matriz_fields:
+        d = dist(field)
+        matriz_data.append({
+            'label': label,
+            'valores': {v: d.get(v, 0) for v in orden_matriz}
+        })
+
+    # Ferias
+    asistio_empresas = qs.filter(asistio_feria_empresas=True).count()
+    asistio_laboratorios = qs.filter(asistio_feria_laboratorios=True).count()
+
+    # Charlas — promedio por charla
+    from django.db.models import Avg as AvgF
+    talk_ratings = TalkRating.objects.filter(survey__in=qs).values(
+        'talk__title'
+    ).annotate(
+        avg=AvgF('puntuacion_disertante')
+    ).order_by('-avg')
+
+    return JsonResponse({
+        'total': total,
+        'evaluacion_general': dist('evaluacion_general'),
+        'aporte_formacion': dist('aporte_formacion'),
+        'interes_tematicas': dist('interes_tematicas'),
+        'organizacion_avg': round(org_avg, 2) if org_avg else None,
+        'matriz': matriz_data,
+        'asistio_empresas': asistio_empresas,
+        'asistio_laboratorios': asistio_laboratorios,
+        'evaluacion_feria_empresas': dist('evaluacion_feria_empresas'),
+        'evaluacion_feria_laboratorios': dist('evaluacion_feria_laboratorios'),
+        'talk_ratings': list(talk_ratings),
+    })
+
+
+@login_required
+def survey_export(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+
+    qs = Survey.objects.filter(completada=True).select_related('certificate')
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Encuestas'
+    headers = [
+        'DNI', 'Nombre', 'Carrera', 'Año', 'Evaluación General',
+        'Aporte Formación', 'Interés Temáticas', 'Organización (1-5)',
+        'Lo mejor', 'A mejorar', 'Asistió Feria Empresas',
+        'Evaluación Feria Empresas', 'Asistió Feria Laboratorios',
+        'Evaluación Feria Laboratorios', 'Próxima Edición'
+    ]
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for s in qs:
+        ws.append([
+            s.certificate.dni,
+            f"{s.certificate.apellido}, {s.certificate.nombre}",
+            s.carrera, s.anio_cursada,
+            s.evaluacion_general, s.aporte_formacion, s.interes_tematicas,
+            s.organizacion_general,
+            s.lo_mejor, s.a_mejorar,
+            'Sí' if s.asistio_feria_empresas else 'No',
+            s.evaluacion_feria_empresas,
+            'Sí' if s.asistio_feria_laboratorios else 'No',
+            s.evaluacion_feria_laboratorios,
+            s.proxima_edicion,
+        ])
+
+    out = BytesIO()
+    wb.save(out)
+    out.seek(0)
+    response = HttpResponse(
+        out.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="encuestas.xlsx"'
+    return response
+
+
+@login_required
+def survey_respuestas_api(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+    campo = request.GET.get('campo', 'lo_mejor')
+
+    campos_validos = ['lo_mejor', 'a_mejorar', 'stands_interesantes',
+                      'mejoras_feria_empresas', 'lab_interesante',
+                      'mejoras_feria_laboratorios', 'proxima_edicion']
+
+    if campo not in campos_validos:
+        return JsonResponse({'error': 'Campo inválido'}, status=400)
+
+    qs = Survey.objects.filter(completada=True)
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    respuestas = list(qs.exclude(**{campo: ''}).values_list(campo, flat=True))
+    return JsonResponse({'respuestas': respuestas, 'total': len(respuestas)})
+
+
+@login_required
+def survey_talks_dashboard(request):
+    from django.db.models import Avg, Count
+    from charlas.constants import DEPT_COLORS, DEPT_ORDER
+
+    dept_filter = request.GET.get('dept', '')
+
+    talks = Talk.objects.all()
+    if dept_filter:
+        talks = talks.filter(department=dept_filter)
+
+    talks_data = []
+    for talk in talks:
+        ratings = TalkRating.objects.filter(talk=talk)
+        avg = ratings.aggregate(avg=Avg('puntuacion_disertante'))['avg']
+        count = ratings.count()
+        talks_data.append({
+            'talk': talk,
+            'avg': round(avg, 1) if avg else None,
+            'count': count,
+            'color': DEPT_COLORS.get(talk.department, '#2b4efe'),
+        })
+
+    talks_data.sort(key=lambda x: x['avg'] or 0, reverse=True)
+
+    return render(request, 'charlas/survey_talks_dashboard.html', {
+        'talks_data': talks_data,
+        'dept_filter': dept_filter,
+        'departamentos': DEPT_ORDER,
+    })
+
+
+@login_required
+def survey_talk_detail(request, talk_id):
+    from django.db.models import Avg, Count
+    from charlas.constants import DEPT_COLORS
+
+    talk = get_object_or_404(Talk, pk=talk_id)
+    ratings = TalkRating.objects.filter(
+        talk=talk).select_related('survey__certificate')
+
+    avg = ratings.aggregate(avg=Avg('puntuacion_disertante'))['avg']
+
+    distribucion = {i: 0 for i in range(1, 6)}
+    for r in ratings:
+        if r.puntuacion_disertante:
+            distribucion[r.puntuacion_disertante] += 1
+    
+    distribucion = dict(sorted(distribucion.items(), reverse=True))
+
+    comentarios = ratings.exclude(
+        comentario='').values_list('comentario', flat=True)
+
+    return render(request, 'charlas/survey_talk_detail.html', {
+        'talk': talk,
+        'avg': round(avg, 1) if avg else None,
+        'total': ratings.count(),
+        'distribucion': distribucion,
+        'comentarios': comentarios,
+        'color': DEPT_COLORS.get(talk.department, '#2b4efe'),
     })

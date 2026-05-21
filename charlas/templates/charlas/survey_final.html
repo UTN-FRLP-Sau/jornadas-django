@@ -1,0 +1,43 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Paso {{ step }} de {{ total_steps }}</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar bg-primary" style="width: {% widthratio step total_steps 100 %}%"></div>
+                    </div>
+                </div>
+
+                <div class="card p-4 p-md-5 shadow-sm border-0">
+                    <h4 class="mb-4 text-primary fw-bold">Para cerrar...</h4>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">¿Qué te gustaría ver en la próxima edición de las Jornadas de Formación Profesional? <span class="text-muted fw-normal">(opcional)</span></label>
+                            <textarea name="proxima_edicion" class="form-control" rows="4" placeholder="Contanos tus ideas..."></textarea>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'survey_step' dni=cert.dni step=step|add:'-1' %}" class="btn btn-outline-secondary rounded-pill px-4">Anterior</a>
+                            <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">
+                                Finalizar y descargar certificado <i class="fa fa-check ms-2"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

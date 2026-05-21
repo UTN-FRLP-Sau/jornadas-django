@@ -1,0 +1,71 @@
+{% extends 'charlas/base_admin.html' %}
+
+{% block admin_content %}
+<h5 class="text-primary-gradient fw-medium">Encuesta</h5>
+<h1 class="mb-4">Evaluación de Charlas</h1>
+
+<!-- Filtro -->
+<div class="card p-4 mb-4 bg-light">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label fw-bold">Departamento</label>
+            <select class="form-select" onchange="window.location='?dept='+this.value">
+                <option value="">Todos los departamentos</option>
+                {% for dept in departamentos %}
+                <option value="{{ dept }}" {% if dept == dept_filter %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Charla</th>
+                    <th>Departamento</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Respuestas</th>
+                    <th class="text-center">Promedio</th>
+                    <th style="min-width:120px;">Barra</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in talks_data %}
+                <tr>
+                    <td class="fw-bold">{{ item.talk.title }}</td>
+                    <td><span class="badge bg-secondary">{{ item.talk.department }}</span></td>
+                    <td>{{ item.talk.date }}</td>
+                    <td class="text-center">{{ item.count }}</td>
+                    <td class="text-center">
+                        {% if item.avg %}
+                        <span class="fw-bold" style="color:{{ item.color }};">{{ item.avg }}/5</span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.avg %}
+                        <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+                            <div style="height:8px;border-radius:4px;width:{% widthratio item.avg 5 100 %}%;background:{{ item.color }};"></div>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'survey_talk_detail' item.talk.pk %}" class="btn btn-sm btn-outline-primary rounded-pill">
+                            <i class="fa fa-chart-bar me-1"></i>Ver detalle
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No hay datos de encuesta disponibles.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

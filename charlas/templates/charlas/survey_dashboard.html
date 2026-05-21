@@ -1,0 +1,264 @@
+{% extends 'charlas/base_admin.html' %}
+
+{% block admin_content %}
+<h5 class="text-primary-gradient fw-medium">Encuesta</h5>
+<h1 class="mb-4">Dashboard de Encuestas</h1>
+
+<!-- Filtros -->
+<div class="card p-4 mb-4 bg-light">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Carrera</label>
+            <select id="filtro-carrera" class="form-select" onchange="cargarDatos()">
+                <option value="">Todas las carreras</option>
+                {% for c in carreras %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Año</label>
+            <select id="filtro-anio" class="form-select" onchange="cargarDatos()">
+                <option value="">Todos los años</option>
+                {% for a in anios %}
+                <option value="{{ a }}">{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <a id="btn-export" href="{% url 'survey_export' %}" class="btn btn-success rounded-pill px-4">
+                <i class="fa fa-file-excel me-2"></i>Exportar Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Métricas -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Total encuestas</p>
+            <h3 id="m-total">—</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Organización promedio</p>
+            <h3 id="m-org">—</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Asistieron a Feria Empresas</p>
+            <h3 id="m-empresas">—</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Asistieron a Feria Laboratorios</p>
+            <h3 id="m-laboratorios">—</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos evaluación general -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Evaluación general</h6>
+            <div style="position:relative;height:200px;">
+                <canvas id="chart-general" role="img" aria-label="Evaluación general"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Aporte a formación</h6>
+            <div style="position:relative;height:200px;">
+                <canvas id="chart-aporte" role="img" aria-label="Aporte a formación"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Interés en temáticas</h6>
+            <div style="position:relative;height:200px;">
+                <canvas id="chart-interes" role="img" aria-label="Interés en temáticas"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Matriz de aspectos -->
+<div class="card p-4 mb-4">
+    <h6 class="fw-bold mb-3">Evaluación de aspectos</h6>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th>Aspecto</th>
+                    <th class="text-center">Muy bueno</th>
+                    <th class="text-center">Bueno</th>
+                    <th class="text-center">Regular</th>
+                    <th class="text-center">Malo</th>
+                    <th class="text-center">Muy malo</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-matriz"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ranking charlas -->
+<div class="card p-4 mb-4">
+    <h6 class="fw-bold mb-3">Ranking de charlas</h6>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th>Charla</th>
+                    <th class="text-center">Promedio</th>
+                    <th>Barra</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-charlas"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Respuestas abiertas -->
+<div class="card p-4 mb-4">
+    <h6 class="fw-bold mb-3">Respuestas abiertas</h6>
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-5">
+            <label class="form-label fw-bold">Campo</label>
+            <select id="campo-respuestas" class="form-select" onchange="cargarRespuestas()">
+                <option value="lo_mejor">Lo que más gustó</option>
+                <option value="a_mejorar">Aspectos a mejorar</option>
+                <option value="stands_interesantes">Stands interesantes</option>
+                <option value="mejoras_feria_empresas">Mejoras feria de empresas</option>
+                <option value="lab_interesante">Laboratorios interesantes</option>
+                <option value="mejoras_feria_laboratorios">Mejoras feria de laboratorios</option>
+                <option value="proxima_edicion">Sugerencias próxima edición</option>
+            </select>
+        </div>
+    </div>
+    <div id="respuestas-lista"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const COLORS = ['#378ADD','#1D9E75','#D85A30','#7F77DD','#D4537E'];
+let charts = {};
+
+function getFilters() {
+    const carrera = document.getElementById('filtro-carrera').value;
+    const anio = document.getElementById('filtro-anio').value;
+    return { carrera, anio };
+}
+
+function updateExportLink() {
+    const { carrera, anio } = getFilters();
+    let url = "{% url 'survey_export' %}";
+    const params = new URLSearchParams();
+    if (carrera) params.append('carrera', carrera);
+    if (anio) params.append('anio', anio);
+    if (params.toString()) url += '?' + params.toString();
+    document.getElementById('btn-export').href = url;
+}
+
+function renderPie(id, data) {
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{ data: values, backgroundColor: COLORS, borderWidth: 2 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+    });
+}
+
+function cargarRespuestas() {
+    const { carrera, anio } = getFilters();
+    const campo = document.getElementById('campo-respuestas').value;
+    const params = new URLSearchParams({ campo });
+    if (carrera) params.append('carrera', carrera);
+    if (anio) params.append('anio', anio);
+
+    fetch("{% url 'survey_respuestas_api' %}?" + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            const lista = document.getElementById('respuestas-lista');
+            if (!data.respuestas.length) {
+                lista.innerHTML = '<p class="text-muted">No hay respuestas.</p>';
+                return;
+            }
+            lista.innerHTML = data.respuestas.map((r, i) =>
+                `<div class="border-bottom py-2 small">${i+1}. ${r}</div>`
+            ).join('');
+        });
+}
+
+function renderMatriz(matriz) {
+    const tbody = document.getElementById('tabla-matriz');
+    tbody.innerHTML = '';
+    matriz.forEach(row => {
+        const total = Object.values(row.valores).reduce((a,b)=>a+b,0);
+        tbody.innerHTML += `<tr>
+            <td class="fw-bold">${row.label}</td>
+            ${Object.entries(row.valores).map(([k,v])=>`<td class="text-center">${v} <small class="text-muted">(${total?Math.round(v/total*100):0}%)</small></td>`).join('')}
+        </tr>`;
+    });
+}
+
+function renderCharlas(ratings) {
+    const tbody = document.getElementById('tabla-charlas');
+    tbody.innerHTML = '';
+    ratings.forEach(r => {
+        const avg = r.avg ? r.avg.toFixed(1) : '—';
+        const pct = r.avg ? Math.round(r.avg / 5 * 100) : 0;
+        tbody.innerHTML += `<tr>
+            <td>${r.talk__title}</td>
+            <td class="text-center fw-bold">${avg}/5</td>
+            <td style="min-width:150px;">
+                <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+                    <div style="height:8px;border-radius:4px;width:${pct}%;background:#2b4efe;"></div>
+                </div>
+            </td>
+        </tr>`;
+    });
+}
+
+function cargarDatos() {
+    const { carrera, anio } = getFilters();
+    const params = new URLSearchParams();
+    if (carrera) params.append('carrera', carrera);
+    if (anio) params.append('anio', anio);
+
+    updateExportLink();
+
+    fetch("{% url 'survey_dashboard_api' %}?" + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('m-total').textContent = data.total;
+            document.getElementById('m-org').textContent = data.organizacion_avg ? data.organizacion_avg + '/5' : '—';
+            document.getElementById('m-empresas').textContent = data.asistio_empresas ?? '—';
+            document.getElementById('m-laboratorios').textContent = data.asistio_laboratorios ?? '—';
+
+            if (data.evaluacion_general) renderPie('chart-general', data.evaluacion_general);
+            if (data.aporte_formacion) renderPie('chart-aporte', data.aporte_formacion);
+            if (data.interes_tematicas) renderPie('chart-interes', data.interes_tematicas);
+            if (data.matriz) renderMatriz(data.matriz);
+            if (data.talk_ratings) renderCharlas(data.talk_ratings);
+        });
+}
+
+window.addEventListener('DOMContentLoaded', cargarDatos);
+</script>
+{% endblock %}

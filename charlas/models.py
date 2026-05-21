@@ -151,22 +151,58 @@ class EmissionJob(models.Model):
 class Survey(models.Model):
     certificate = models.OneToOneField(
         Certificate, on_delete=models.CASCADE, related_name='survey')
-    # Generales
-    organizacion = models.PositiveSmallIntegerField(null=True, blank=True)
-    instalaciones = models.PositiveSmallIntegerField(null=True, blank=True)
-    comunicacion = models.PositiveSmallIntegerField(null=True, blank=True)
-    tematicas = models.PositiveSmallIntegerField(null=True, blank=True)
-    comentario_general = models.TextField(blank=True, default='')
-    # Feria empresas
-    feria_empresas_puntuacion = models.PositiveSmallIntegerField(
+
+    # Datos generales
+    carrera = models.CharField(max_length=100, blank=True, default='')
+    anio_cursada = models.CharField(max_length=20, blank=True, default='')
+
+    # Evaluación general
+    evaluacion_general = models.CharField(
+        max_length=20, blank=True, default='')
+    aporte_formacion = models.CharField(max_length=20, blank=True, default='')
+    interes_tematicas = models.CharField(max_length=20, blank=True, default='')
+    organizacion_general = models.PositiveSmallIntegerField(
         null=True, blank=True)
-    feria_empresas_contacto = models.BooleanField(null=True, blank=True)
-    feria_empresas_comentario = models.TextField(blank=True, default='')
-    # Feria laboratorios
-    feria_laboratorios_puntuacion = models.PositiveSmallIntegerField(
-        null=True, blank=True)
-    feria_laboratorios_conocia = models.BooleanField(null=True, blank=True)
-    feria_laboratorios_comentario = models.TextField(blank=True, default='')
+
+    # Matriz de aspectos
+    matriz_variedad = models.CharField(max_length=20, blank=True, default='')
+    matriz_disertantes = models.CharField(
+        max_length=20, blank=True, default='')
+    matriz_horarios = models.CharField(max_length=20, blank=True, default='')
+    matriz_informacion = models.CharField(
+        max_length=20, blank=True, default='')
+    matriz_inscripcion = models.CharField(
+        max_length=20, blank=True, default='')
+    matriz_acreditacion = models.CharField(
+        max_length=20, blank=True, default='')
+    matriz_espacios = models.CharField(max_length=20, blank=True, default='')
+    matriz_colaboradores = models.CharField(
+        max_length=20, blank=True, default='')
+
+    # Preguntas abiertas generales
+    lo_mejor = models.TextField(blank=True, default='')
+    a_mejorar = models.TextField(blank=True, default='')
+
+    # Feria de empresas
+    asistio_feria_empresas = models.BooleanField(null=True, blank=True)
+    evaluacion_feria_empresas = models.CharField(
+        max_length=20, blank=True, default='')
+    utilidad_feria_empresas = models.CharField(
+        max_length=20, blank=True, default='')
+    stands_interesantes = models.TextField(blank=True, default='')
+    mejoras_feria_empresas = models.TextField(blank=True, default='')
+
+    # Feria de laboratorios
+    asistio_feria_laboratorios = models.BooleanField(null=True, blank=True)
+    evaluacion_feria_laboratorios = models.CharField(
+        max_length=20, blank=True, default='')
+    conocio_proyectos = models.CharField(max_length=20, blank=True, default='')
+    lab_interesante = models.TextField(blank=True, default='')
+    mejoras_feria_laboratorios = models.TextField(blank=True, default='')
+
+    # Sección final
+    proxima_edicion = models.TextField(blank=True, default='')
+
     # Control
     completada = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
