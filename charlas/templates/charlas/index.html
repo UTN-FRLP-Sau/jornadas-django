@@ -18,6 +18,11 @@
                     representantes del sector público y privado.
                 </p>
                 <a href="#feature" class="btn btn-outline-light py-sm-3 px-4 px-sm-5 rounded-pill fs-5">Ver Charlas</a>
+                {% if descarga_habilitada %}
+                <a href="{% url 'certificate_download' %}" class="btn btn-outline-light py-sm-3 px-4 px-sm-5 rounded-pill fs-5 ms-3">
+                    <i class="fa fa-certificate me-2"></i>Descargar Certificado
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

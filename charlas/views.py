@@ -300,6 +300,8 @@ def _send_confirmation_email(request, registration):
 
 def index(request):
     talks = list(Talk.objects.all())
+    config = CertificateConfig.objects.filter(activa=True).first()
+    descarga_habilitada = config.descarga_habilitada if config else False
     
     def get_date_priority(talk):
         d = talk.date.lower()
@@ -321,7 +323,10 @@ def index(request):
     # Ordenar por prioridad de fecha (Martes, Miercoles, Jueves) y luego por hora
     sorted_talks = sorted(talks, key=lambda t: (get_date_priority(t), t.time))
     
-    return render(request, 'charlas/index.html', {'talks': sorted_talks})
+    return render(request, 'charlas/index.html', {
+        'talks': sorted_talks,
+        'descarga_habilitada': descarga_habilitada,
+        })
 
 def _duplicate_exists(talk, dni, legajo):
     """Check if a registration with the same DNI or legajo already exists for this talk."""
