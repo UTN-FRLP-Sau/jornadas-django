@@ -1142,18 +1142,26 @@ def attendance_dashboard(request):
     departments = {}
     for dept in DEPT_ORDER:
         talks = Talk.objects.filter(department=dept)
+    
+        # Alumnos únicos inscriptos y presentes en este depto
+        inscriptos_unicos = Registration.objects.filter(
+            talk__department=dept
+        ).values('dni').distinct().count()
+
+        presentes_unicos = Registration.objects.filter(
+            talk__department=dept, attended=True
+        ).values('dni').distinct().count()
+    
         dept_data = {
             'dept': dept,
             'color': DEPT_COLORS.get(dept, '#2b4efe'),
-            'inscriptos': 0,
-            'presentes': 0,
+            'inscriptos': inscriptos_unicos,
+            'presentes': presentes_unicos,
             'charlas': []
         }
         for talk in talks:
             inscriptos = talk.registered_count
             presentes = talk.registrations.filter(attended=True).count()
-            dept_data['inscriptos'] += inscriptos
-            dept_data['presentes'] += presentes
             dept_data['charlas'].append({
                 'titulo': talk.title,
                 'fecha': talk.date,
@@ -1161,7 +1169,8 @@ def attendance_dashboard(request):
                 'presentes': presentes,
             })
         departments[dept] = dept_data
-
+        
+    data = list(departments.values())
     return render(request, 'charlas/attendance_dashboard.html', {
-        'departments': json.dumps(list(departments.values())),
+        'departments': json.dumps(data),
     })
