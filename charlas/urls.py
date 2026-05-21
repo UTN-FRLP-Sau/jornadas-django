@@ -74,4 +74,9 @@ urlpatterns = [
          views.survey, name='survey_step'),
     path('certificado/encuesta/<str:dni>/listo/',
          views.survey_done, name='survey_done'),
+    #Dashboard encuesta
+    path('admin/encuesta/dashboard/', views.survey_dashboard, name='survey_dashboard'),
+    path('admin/encuesta/dashboard/api/', views.survey_dashboard_api, name='survey_dashboard_api'),
+    path('admin/encuesta/dashboard/analizar/', views.survey_analizar_ia, name='survey_analizar_ia'),
+    path('admin/encuesta/dashboard/export/', views.survey_export, name='survey_export'),
 ]

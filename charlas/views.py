@@ -35,10 +35,35 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
+import google.generativeai as genai
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+
+
+def _analizar_respuestas_ia(respuestas, contexto):
+    try:
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        prompt = f"""Analizá las siguientes respuestas abiertas de una encuesta sobre {contexto} 
+de las Jornadas de Formación Profesional de la UTN La Plata 2026.
+
+Respuestas:
+{chr(10).join(f'- {r}' for r in respuestas if r.strip())}
+
+Respondé en español con este formato exacto:
+**Temas principales:** (listado de los temas más mencionados)
+**Aspectos positivos:** (lo que más valoran)
+**Aspectos a mejorar:** (críticas y sugerencias)
+**Resumen:** (2-3 oraciones resumiendo el sentimiento general)"""
+
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f'Error al analizar: {e}'
+
 
 def _generate_certificate_pdf(cert):
     template_path = settings.BASE_DIR / 'charlas' / 'static' / \
@@ -1217,3 +1242,180 @@ def attendance_dashboard(request):
         'total_presentes': total_presentes,
         'total_charlas': total_charlas,
     })
+
+
+@login_required
+def survey_dashboard(request):
+    carreras = Survey.objects.exclude(carrera='').values_list(
+        'carrera', flat=True).distinct()
+    anios = Survey.objects.exclude(anio_cursada='').values_list(
+        'anio_cursada', flat=True).distinct()
+    total = Survey.objects.filter(completada=True).count()
+
+    return render(request, 'charlas/survey_dashboard.html', {
+        'carreras': sorted(carreras),
+        'anios': sorted(anios),
+        'total': total,
+    })
+
+
+@login_required
+def survey_dashboard_api(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+
+    qs = Survey.objects.filter(completada=True)
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    total = qs.count()
+    if total == 0:
+        return JsonResponse({'total': 0})
+
+    # Evaluación general
+    def dist(field):
+        from django.db.models import Count
+        return dict(qs.exclude(**{f'{field}': ''}).values_list(field).annotate(n=Count('id')))
+
+    # Promedio organización
+    from django.db.models import Avg
+    org_avg = qs.filter(organizacion_general__isnull=False).aggregate(
+        avg=Avg('organizacion_general'))['avg']
+
+    # Matriz
+    matriz_fields = [
+        ('matriz_variedad', 'Variedad de temáticas'),
+        ('matriz_disertantes', 'Nivel de disertantes'),
+        ('matriz_horarios', 'Organización de horarios'),
+        ('matriz_informacion', 'Información previa'),
+        ('matriz_inscripcion', 'Sistema de inscripción'),
+        ('matriz_acreditacion', 'Sistema de acreditación'),
+        ('matriz_espacios', 'Distribución de espacios'),
+        ('matriz_colaboradores', 'Acompañamiento de colaboradores'),
+    ]
+    orden_matriz = ['Muy bueno', 'Bueno', 'Regular', 'Malo', 'Muy malo']
+    matriz_data = []
+    for field, label in matriz_fields:
+        d = dist(field)
+        matriz_data.append({
+            'label': label,
+            'valores': {v: d.get(v, 0) for v in orden_matriz}
+        })
+
+    # Ferias
+    asistio_empresas = qs.filter(asistio_feria_empresas=True).count()
+    asistio_laboratorios = qs.filter(asistio_feria_laboratorios=True).count()
+
+    # Charlas — promedio por charla
+    from django.db.models import Avg as AvgF
+    talk_ratings = TalkRating.objects.filter(survey__in=qs).values(
+        'talk__title'
+    ).annotate(
+        avg=AvgF('puntuacion_disertante')
+    ).order_by('-avg')
+
+    return JsonResponse({
+        'total': total,
+        'evaluacion_general': dist('evaluacion_general'),
+        'aporte_formacion': dist('aporte_formacion'),
+        'interes_tematicas': dist('interes_tematicas'),
+        'organizacion_avg': round(org_avg, 2) if org_avg else None,
+        'matriz': matriz_data,
+        'asistio_empresas': asistio_empresas,
+        'asistio_laboratorios': asistio_laboratorios,
+        'evaluacion_feria_empresas': dist('evaluacion_feria_empresas'),
+        'evaluacion_feria_laboratorios': dist('evaluacion_feria_laboratorios'),
+        'talk_ratings': list(talk_ratings),
+    })
+
+
+@login_required
+def survey_analizar_ia(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+    campo = request.GET.get('campo', 'lo_mejor')
+
+    qs = Survey.objects.filter(completada=True)
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    campos_validos = ['lo_mejor', 'a_mejorar', 'stands_interesantes',
+                      'mejoras_feria_empresas', 'lab_interesante',
+                      'mejoras_feria_laboratorios', 'proxima_edicion']
+
+    if campo not in campos_validos:
+        return JsonResponse({'error': 'Campo inválido'}, status=400)
+
+    respuestas = list(qs.exclude(**{campo: ''}).values_list(campo, flat=True))
+
+    if not respuestas:
+        return JsonResponse({'resultado': 'No hay respuestas para analizar.'})
+
+    contexto_map = {
+        'lo_mejor': 'lo que más gustó del evento',
+        'a_mejorar': 'aspectos a mejorar del evento',
+        'stands_interesantes': 'stands de la feria de empresas',
+        'mejoras_feria_empresas': 'mejoras para la feria de empresas',
+        'lab_interesante': 'laboratorios más interesantes',
+        'mejoras_feria_laboratorios': 'mejoras para la feria de laboratorios',
+        'proxima_edicion': 'sugerencias para la próxima edición',
+    }
+
+    resultado = _analizar_respuestas_ia(
+        respuestas, contexto_map.get(campo, campo))
+    return JsonResponse({'resultado': resultado, 'total_respuestas': len(respuestas)})
+
+
+@login_required
+def survey_export(request):
+    carrera = request.GET.get('carrera', '')
+    anio = request.GET.get('anio', '')
+
+    qs = Survey.objects.filter(completada=True).select_related('certificate')
+    if carrera:
+        qs = qs.filter(carrera=carrera)
+    if anio:
+        qs = qs.filter(anio_cursada=anio)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Encuestas'
+    headers = [
+        'DNI', 'Nombre', 'Carrera', 'Año', 'Evaluación General',
+        'Aporte Formación', 'Interés Temáticas', 'Organización (1-5)',
+        'Lo mejor', 'A mejorar', 'Asistió Feria Empresas',
+        'Evaluación Feria Empresas', 'Asistió Feria Laboratorios',
+        'Evaluación Feria Laboratorios', 'Próxima Edición'
+    ]
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=1, column=col).font = Font(bold=True)
+
+    for s in qs:
+        ws.append([
+            s.certificate.dni,
+            f"{s.certificate.apellido}, {s.certificate.nombre}",
+            s.carrera, s.anio_cursada,
+            s.evaluacion_general, s.aporte_formacion, s.interes_tematicas,
+            s.organizacion_general,
+            s.lo_mejor, s.a_mejorar,
+            'Sí' if s.asistio_feria_empresas else 'No',
+            s.evaluacion_feria_empresas,
+            'Sí' if s.asistio_feria_laboratorios else 'No',
+            s.evaluacion_feria_laboratorios,
+            s.proxima_edicion,
+        ])
+
+    out = BytesIO()
+    wb.save(out)
+    out.seek(0)
+    response = HttpResponse(
+        out.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    response['Content-Disposition'] = 'attachment; filename="encuestas.xlsx"'
+    return response
