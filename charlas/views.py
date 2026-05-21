@@ -1427,6 +1427,8 @@ def survey_talk_detail(request, talk_id):
     for r in ratings:
         if r.puntuacion_disertante:
             distribucion[r.puntuacion_disertante] += 1
+    
+    distribucion = dict(sorted(distribucion.items(), reverse=True))
 
     comentarios = ratings.exclude(
         comentario='').values_list('comentario', flat=True)

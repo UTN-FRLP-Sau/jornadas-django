@@ -57,19 +57,22 @@
                         <th>Barra</th>
                     </tr>
                 </thead>
-                <tbody>
-                    {% for i in "54321" %}
-                    <tr>
-                        <td class="fw-bold">{{ i }} ⭐</td>
-                        <td class="text-center">{{ distribucion|default:0 }}</td>
-                        <td style="min-width:100px;">
-                            <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
-                                <div style="height:8px;border-radius:4px;width:{% if total %}{% widthratio distribucion|default:0 total 100 %}{% else %}0{% endif %}%;background:{{ color }};"></div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
+                    <tbody>
+                        {% for punt, cant in distribucion.items %}
+                        <tr>
+                            <td class="fw-bold">{{ punt }} ⭐</td>
+                            <td class="text-center">{{ cant }}</td>
+                            <td style="min-width:100px;">
+                                <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+                                    {% if total %}
+                                    <div style="height:8px;border-radius:4px;width:{% widthratio cant total 100 %}%;background:{{ color }};"></div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
             </table>
         </div>
     </div>
