@@ -1,0 +1,246 @@
+{% extends 'charlas/base_admin.html' %}
+
+{% block admin_content %}
+<h5 class="text-primary-gradient fw-medium">Administración</h5>
+<h1 class="mb-4">Dashboard de Asistencia</h1>
+
+<div id="dashboard-root">
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;">
+    <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Total inscriptos</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-inscriptos">—</p>
+    </div>
+    <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Total presentes</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-presentes">—</p>
+    </div>
+    <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Asistencia global</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-pct">—</p>
+    </div>
+    <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
+      <p style="font-size:13px;color:#666;margin:0 0 4px;" id="m-charlas-label">Charlas realizadas</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-charlas">—</p>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem;">
+    <div>
+      <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;" id="bar-label">Inscriptos vs presentes por departamento</p>
+      <div style="position:relative;height:260px;"><canvas id="barChart" role="img" aria-label="Inscriptos vs presentes"></canvas></div>
+    </div>
+    <div>
+      <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;" id="donut-label">% asistencia por departamento</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:11px;" id="legend"></div>
+      <div style="position:relative;height:220px;"><canvas id="donutChart" role="img" aria-label="Porcentaje asistencia"></canvas></div>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;">
+    Detalle por departamento <span id="dept-breadcrumb" style="font-weight:400;"></span>
+  </p>
+  <div style="background:white;border:0.5px solid #e2e6f5;border-radius:12px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="color:#666;font-weight:500;padding:8px 12px;text-align:left;border-bottom:0.5px solid #e2e6f5;">Departamento</th>
+          <th style="color:#666;font-weight:500;padding:8px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">Inscriptos</th>
+          <th style="color:#666;font-weight:500;padding:8px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">Presentes</th>
+          <th style="color:#666;font-weight:500;padding:8px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">Ausentes</th>
+          <th style="color:#666;font-weight:500;padding:8px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">% Asistencia</th>
+          <th style="color:#666;font-weight:500;padding:8px 12px;min-width:80px;border-bottom:0.5px solid #e2e6f5;">Progreso</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const deptos = {{ departments|safe }};
+let activeIdx = null;
+let barChart, donutChart;
+
+function pct(p,i){ return i===0 ? 0 : Math.round(p/i*100); }
+
+function badgeStyle(p){
+  if(p>=80) return 'background:#E1F5EE;color:#0F6E56;';
+  if(p>=60) return 'background:#FAEEDA;color:#854F0B;';
+  return 'background:#FAECE7;color:#993C1D;';
+}
+
+function buildLegend(items){
+  document.getElementById('legend').innerHTML = items.map(d=>
+    `<span style="display:flex;align-items:center;gap:4px;">
+      <span style="width:10px;height:10px;border-radius:2px;background:${d.color};display:inline-block;"></span>
+      <span style="color:#666;">${d.label}</span>
+    </span>`
+  ).join('');
+}
+
+function updateMetrics(inscriptos, presentes, charlas, label){
+  document.getElementById('m-inscriptos').textContent = inscriptos.toLocaleString('es-AR');
+  document.getElementById('m-presentes').textContent = presentes.toLocaleString('es-AR');
+  document.getElementById('m-pct').textContent = pct(presentes, inscriptos) + '%';
+  document.getElementById('m-charlas').textContent = charlas;
+  document.getElementById('m-charlas-label').textContent = label;
+}
+
+function updateCharts(idx){
+  if(idx === null){
+    document.getElementById('bar-label').textContent = 'Inscriptos vs presentes por departamento';
+    document.getElementById('donut-label').textContent = '% asistencia por departamento';
+    document.getElementById('dept-breadcrumb').textContent = '';
+    barChart.data.labels = deptos.map(d=>d.dept);
+    barChart.data.datasets[0].data = deptos.map(d=>d.inscriptos);
+    barChart.data.datasets[1].data = deptos.map(d=>d.presentes);
+    barChart.data.datasets[1].backgroundColor = deptos.map(d=>d.color+'CC');
+    barChart.data.datasets[1].borderColor = deptos.map(d=>d.color);
+    donutChart.data.labels = deptos.map(d=>d.dept);
+    donutChart.data.datasets[0].data = deptos.map(d=>pct(d.presentes,d.inscriptos));
+    donutChart.data.datasets[0].backgroundColor = deptos.map(d=>d.color);
+    buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
+    const ti = deptos.reduce((a,d)=>a+d.inscriptos,0);
+    const tp = deptos.reduce((a,d)=>a+d.presentes,0);
+    const tc = deptos.reduce((a,d)=>a+d.charlas.length,0);
+    updateMetrics(ti, tp, tc, 'Charlas realizadas');
+  } else {
+    const d = deptos[idx];
+    document.getElementById('bar-label').textContent = `Charlas — ${d.dept}`;
+    document.getElementById('donut-label').textContent = `% asistencia por charla`;
+    document.getElementById('dept-breadcrumb').textContent = `— ${d.dept}`;
+    const shades = ['CC','AA','88','66','55','44','33'];
+    barChart.data.labels = d.charlas.map(c=>c.titulo.length>20?c.titulo.slice(0,18)+'…':c.titulo);
+    barChart.data.datasets[0].data = d.charlas.map(c=>c.inscriptos);
+    barChart.data.datasets[1].data = d.charlas.map(c=>c.presentes);
+    barChart.data.datasets[1].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
+    barChart.data.datasets[1].borderColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
+    donutChart.data.labels = d.charlas.map(c=>c.titulo.length>20?c.titulo.slice(0,18)+'…':c.titulo);
+    donutChart.data.datasets[0].data = d.charlas.map(c=>pct(c.presentes,c.inscriptos));
+    donutChart.data.datasets[0].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
+    buildLegend(d.charlas.map((c,i)=>({color:d.color+shades[i%shades.length],label:c.titulo.length>22?c.titulo.slice(0,20)+'…':c.titulo})));
+    updateMetrics(d.inscriptos, d.presentes, d.charlas.length, 'Charlas del depto');
+  }
+  barChart.update();
+  donutChart.update();
+}
+
+function buildTable(){
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  deptos.forEach((d,i)=>{
+    const p = pct(d.presentes, d.inscriptos);
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.id = `row-${i}`;
+    tr.innerHTML = `
+      <td style="padding:10px 12px;border-bottom:0.5px solid #e2e6f5;">
+        <span id="chev-${i}" style="display:inline-block;transition:transform 0.2s;margin-right:6px;font-size:10px;color:#666;">▶</span>
+        <strong>${d.dept}</strong>
+      </td>
+      <td style="padding:10px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">${d.inscriptos}</td>
+      <td style="padding:10px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">${d.presentes}</td>
+      <td style="padding:10px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;color:#666;">${d.inscriptos-d.presentes}</td>
+      <td style="padding:10px 12px;text-align:right;border-bottom:0.5px solid #e2e6f5;">
+        <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;${badgeStyle(p)}">${p}%</span>
+      </td>
+      <td style="padding:10px 12px;border-bottom:0.5px solid #e2e6f5;min-width:80px;">
+        <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+          <div style="height:8px;border-radius:4px;width:${p}%;background:${d.color};"></div>
+        </div>
+      </td>`;
+
+    const detailTr = document.createElement('tr');
+    detailTr.id = `detail-${i}`;
+    detailTr.style.display = 'none';
+    const inner = d.charlas.map(c=>{
+      const cp = pct(c.presentes, c.inscriptos);
+      return `<tr style="border-bottom:0.5px solid #e2e6f5;">
+        <td style="padding:8px 12px;">${c.titulo}</td>
+        <td style="padding:8px 12px;color:#666;font-size:12px;">${c.fecha}</td>
+        <td style="padding:8px 12px;text-align:right;">${c.inscriptos}</td>
+        <td style="padding:8px 12px;text-align:right;">${c.presentes}</td>
+        <td style="padding:8px 12px;text-align:right;">
+          <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;${badgeStyle(cp)}">${cp}%</span>
+        </td>
+        <td style="padding:8px 12px;min-width:80px;">
+          <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+            <div style="height:8px;border-radius:4px;width:${cp}%;background:${d.color};"></div>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    detailTr.innerHTML = `<td colspan="6">
+      <div style="padding:8px 12px 16px 32px;background:#f8faff;">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <tr style="border-bottom:0.5px solid #e2e6f5;">
+            <th style="padding:4px 12px;color:#666;font-weight:500;text-align:left;">Charla</th>
+            <th style="padding:4px 12px;color:#666;font-weight:500;text-align:left;">Fecha</th>
+            <th style="padding:4px 12px;color:#666;font-weight:500;text-align:right;">Inscriptos</th>
+            <th style="padding:4px 12px;color:#666;font-weight:500;text-align:right;">Presentes</th>
+            <th style="padding:4px 12px;color:#666;font-weight:500;text-align:right;">%</th>
+            <th style="padding:4px 12px;color:#666;font-weight:500;min-width:80px;">Progreso</th>
+          </tr>
+          ${inner}
+        </table>
+      </div>
+    </td>`;
+
+    tr.addEventListener('click', ()=>{
+      const isOpen = detailTr.style.display === 'table-row';
+      document.querySelectorAll('[id^="detail-"]').forEach(r=>r.style.display='none');
+      document.querySelectorAll('[id^="chev-"]').forEach(c=>c.textContent='▶');
+      document.querySelectorAll('[id^="row-"]').forEach(r=>r.style.background='');
+      if(isOpen){
+        activeIdx = null;
+        updateCharts(null);
+      } else {
+        detailTr.style.display = 'table-row';
+        document.getElementById(`chev-${i}`).textContent = '▼';
+        tr.style.background = '#f8faff';
+        activeIdx = i;
+        updateCharts(i);
+      }
+    });
+
+    tbody.appendChild(tr);
+    tbody.appendChild(detailTr);
+  });
+}
+
+buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
+buildTable();
+
+const ti = deptos.reduce((a,d)=>a+d.inscriptos,0);
+const tp = deptos.reduce((a,d)=>a+d.presentes,0);
+const tc = deptos.reduce((a,d)=>a+d.charlas.length,0);
+updateMetrics(ti, tp, tc, 'Charlas realizadas');
+
+barChart = new Chart(document.getElementById('barChart'),{
+  type:'bar',
+  data:{
+    labels:deptos.map(d=>d.dept),
+    datasets:[
+      {label:'Inscriptos',data:deptos.map(d=>d.inscriptos),backgroundColor:'rgba(55,138,221,0.25)',borderColor:'#378ADD',borderWidth:1},
+      {label:'Presentes', data:deptos.map(d=>d.presentes), backgroundColor:deptos.map(d=>d.color+'CC'),borderColor:deptos.map(d=>d.color),borderWidth:1}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true}}}
+});
+
+donutChart = new Chart(document.getElementById('donutChart'),{
+  type:'doughnut',
+  data:{
+    labels:deptos.map(d=>d.dept),
+    datasets:[{data:deptos.map(d=>pct(d.presentes,d.inscriptos)),backgroundColor:deptos.map(d=>d.color),borderWidth:2}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+});
+</script>
+{% endblock %}

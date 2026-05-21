@@ -41,6 +41,10 @@ urlpatterns = [
          views.import_attendance, name='import_attendance'),
     path('admin/attendance/import/export/',
          views.export_import_results, name='export_import_results'),
+    
+    # Dashboard
+    path('admin/dashboard/asistencia/',
+         views.attendance_dashboard, name='attendance_dashboard'),
 
     # QR Scanner
     path('admin/scan/<int:pk>/', views.admin_scan, name='admin_scan'),

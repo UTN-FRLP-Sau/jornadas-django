@@ -19,6 +19,9 @@
         </div>
 
         <nav class="nav flex-column">
+            <a href="{% url 'attendance_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'attendance_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-chart-bar" style="min-width:16px;"></i><span class="sidebar-label ms-2">Dashboard Asistencia</span>
+            </a>
             <a href="{% url 'admin_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
                 <i class="fa fa-list" style="min-width:16px;"></i><span class="sidebar-label ms-2">Charlas</span>
             </a>

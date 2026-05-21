@@ -11,6 +11,7 @@ from email.mime.multipart import MIMEMultipart
 import uuid
 import csv
 import io
+import json
 from io import BytesIO
 import re
 
@@ -1132,3 +1133,35 @@ def survey_done(request, dni):
         except Exception as e:
             print(f'[CERT PDF] Error: {e}')
     return render(request, 'charlas/survey_done.html', {'cert': cert})
+
+
+@login_required
+def attendance_dashboard(request):
+    from charlas.constants import DEPT_COLORS, DEPT_ORDER
+
+    departments = {}
+    for dept in DEPT_ORDER:
+        talks = Talk.objects.filter(department=dept)
+        dept_data = {
+            'dept': dept,
+            'color': DEPT_COLORS.get(dept, '#2b4efe'),
+            'inscriptos': 0,
+            'presentes': 0,
+            'charlas': []
+        }
+        for talk in talks:
+            inscriptos = talk.registered_count
+            presentes = talk.registrations.filter(attended=True).count()
+            dept_data['inscriptos'] += inscriptos
+            dept_data['presentes'] += presentes
+            dept_data['charlas'].append({
+                'titulo': talk.title,
+                'fecha': talk.date,
+                'inscriptos': inscriptos,
+                'presentes': presentes,
+            })
+        departments[dept] = dept_data
+
+    return render(request, 'charlas/attendance_dashboard.html', {
+        'departments': json.dumps(list(departments.values())),
+    })
