@@ -91,8 +91,20 @@ function updateMetrics(inscriptos, presentes, charlas, label){
   document.getElementById('m-charlas-label').textContent = label;
 }
 
+const GLOBAL_INSCRIPTOS = {{ total_inscriptos }};
+const GLOBAL_PRESENTES = {{ total_presentes }};
+const GLOBAL_CHARLAS = {{ total_charlas }};
+const GLOBAL_PCT = Math.round(GLOBAL_PRESENTES / GLOBAL_INSCRIPTOS * 100);
+
 function updateCharts(idx){
   if(idx === null){
+    // Usar valores globales del servidor
+    document.getElementById('m-inscriptos').textContent = GLOBAL_INSCRIPTOS.toLocaleString('es-AR');
+    document.getElementById('m-presentes').textContent = GLOBAL_PRESENTES.toLocaleString('es-AR');
+    document.getElementById('m-pct').textContent = GLOBAL_PCT + '%';
+    document.getElementById('m-charlas').textContent = GLOBAL_CHARLAS;
+    document.getElementById('m-charlas-label').textContent = 'Charlas realizadas';
+    // Actualizar gráficos con datos globales
     document.getElementById('bar-label').textContent = 'Inscriptos vs presentes por departamento';
     document.getElementById('donut-label').textContent = '% asistencia por departamento';
     document.getElementById('dept-breadcrumb').textContent = '';
@@ -105,10 +117,6 @@ function updateCharts(idx){
     donutChart.data.datasets[0].data = deptos.map(d=>pct(d.presentes,d.inscriptos));
     donutChart.data.datasets[0].backgroundColor = deptos.map(d=>d.color);
     buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
-    const ti = deptos.reduce((a,d)=>a+d.inscriptos,0);
-    const tp = deptos.reduce((a,d)=>a+d.presentes,0);
-    const tc = deptos.reduce((a,d)=>a+d.charlas.length,0);
-    updateMetrics(ti, tp, tc, 'Charlas realizadas');
   } else {
     const d = deptos[idx];
     document.getElementById('bar-label').textContent = `Charlas — ${d.dept}`;
