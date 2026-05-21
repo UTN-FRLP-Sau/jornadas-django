@@ -77,6 +77,11 @@ urlpatterns = [
     #Dashboard encuesta
     path('admin/encuesta/dashboard/', views.survey_dashboard, name='survey_dashboard'),
     path('admin/encuesta/dashboard/api/', views.survey_dashboard_api, name='survey_dashboard_api'),
-    path('admin/encuesta/dashboard/analizar/', views.survey_analizar_ia, name='survey_analizar_ia'),
     path('admin/encuesta/dashboard/export/', views.survey_export, name='survey_export'),
+    path('admin/encuesta/dashboard/respuestas/',
+         views.survey_respuestas_api, name='survey_respuestas_api'),
+    path('admin/encuesta/charlas/', views.survey_talks_dashboard,
+         name='survey_talks_dashboard'),
+    path('admin/encuesta/charla/<int:talk_id>/',
+         views.survey_talk_detail, name='survey_talk_detail'),
 ]

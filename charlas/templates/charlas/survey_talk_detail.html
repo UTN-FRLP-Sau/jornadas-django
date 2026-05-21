@@ -1,0 +1,116 @@
+{% extends 'charlas/base_admin.html' %}
+
+{% block admin_content %}
+<div class="mb-4">
+    <a href="{% url 'survey_talks_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 mb-3">
+        <i class="fa fa-arrow-left me-2"></i>Volver
+    </a>
+    <h5 class="text-primary-gradient fw-medium">Encuesta — Detalle de Charla</h5>
+    <h1 class="mb-1">{{ talk.title }}</h1>
+    <p class="text-muted">
+        <i class="fa fa-user me-1"></i>{{ talk.speaker }} &nbsp;·&nbsp;
+        <i class="fa fa-calendar-alt me-1"></i>{{ talk.date }} — {{ talk.time }} &nbsp;·&nbsp;
+        <span class="badge bg-secondary">{{ talk.department }}</span>
+    </p>
+</div>
+
+<!-- Métricas -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Promedio general</p>
+            <h2 style="color:{{ color }};">{{ avg|default:"—" }}{% if avg %}/5{% endif %}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Total respuestas</p>
+            <h2>{{ total }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Comentarios</p>
+            <h2>{{ comentarios|length }}</h2>
+        </div>
+    </div>
+</div>
+
+<!-- Distribución -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Distribución de puntuaciones</h6>
+            <div style="position:relative;height:250px;">
+                <canvas id="chart-dist" role="img" aria-label="Distribución de puntuaciones"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Desglose</h6>
+            <table class="table table-hover align-middle" style="font-size:13px;">
+                <thead>
+                    <tr>
+                        <th>Puntuación</th>
+                        <th class="text-center">Respuestas</th>
+                        <th>Barra</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in "54321" %}
+                    <tr>
+                        <td class="fw-bold">{{ i }} ⭐</td>
+                        <td class="text-center">{{ distribucion|default:0 }}</td>
+                        <td style="min-width:100px;">
+                            <div style="background:#f0f2fa;border-radius:4px;height:8px;overflow:hidden;">
+                                <div style="height:8px;border-radius:4px;width:{% if total %}{% widthratio distribucion|default:0 total 100 %}{% else %}0{% endif %}%;background:{{ color }};"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Comentarios -->
+{% if comentarios %}
+<div class="card p-4">
+    <h6 class="fw-bold mb-3">Comentarios ({{ comentarios|length }})</h6>
+    {% for c in comentarios %}
+    <div class="border-bottom py-2 small">{{ forloop.counter }}. {{ c }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const dist = {{ distribucion|safe }};
+const color = '{{ color }}';
+
+new Chart(document.getElementById('chart-dist'), {
+    type: 'bar',
+    data: {
+        labels: ['1', '2', '3', '4', '5'],
+        datasets: [{
+            label: 'Respuestas',
+            data: [dist[1]||0, dist[2]||0, dist[3]||0, dist[4]||0, dist[5]||0],
+            backgroundColor: color + 'CC',
+            borderColor: color,
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    }
+});
+</script>
+{% endblock %}

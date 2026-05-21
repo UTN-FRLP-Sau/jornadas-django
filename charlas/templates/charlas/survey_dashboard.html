@@ -126,13 +126,13 @@
     </div>
 </div>
 
-<!-- Análisis IA -->
+<!-- Respuestas abiertas -->
 <div class="card p-4 mb-4">
-    <h6 class="fw-bold mb-3">Análisis de respuestas abiertas con IA</h6>
+    <h6 class="fw-bold mb-3">Respuestas abiertas</h6>
     <div class="row g-3 align-items-end mb-3">
         <div class="col-md-5">
-            <label class="form-label fw-bold">Campo a analizar</label>
-            <select id="campo-ia" class="form-select">
+            <label class="form-label fw-bold">Campo</label>
+            <select id="campo-respuestas" class="form-select" onchange="cargarRespuestas()">
                 <option value="lo_mejor">Lo que más gustó</option>
                 <option value="a_mejorar">Aspectos a mejorar</option>
                 <option value="stands_interesantes">Stands interesantes</option>
@@ -142,22 +142,8 @@
                 <option value="proxima_edicion">Sugerencias próxima edición</option>
             </select>
         </div>
-        <div class="col-md-3">
-            <button class="btn btn-primary-gradient rounded-pill px-4" onclick="analizarIA()">
-                <i class="fa fa-robot me-2"></i>Analizar con IA
-            </button>
-        </div>
     </div>
-    <div id="ia-loading" class="d-none text-center py-3">
-        <div class="spinner-border text-primary"></div>
-        <p class="text-muted mt-2">Analizando respuestas...</p>
-    </div>
-    <div id="ia-resultado" class="d-none">
-        <div class="alert alert-info mb-2">
-            <small id="ia-total-resp" class="text-muted"></small>
-        </div>
-        <div id="ia-texto" style="white-space:pre-wrap; font-size:14px;"></div>
-    </div>
+    <div id="respuestas-lista"></div>
 </div>
 
 {% endblock %}
@@ -196,6 +182,27 @@ function renderPie(id, data) {
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
     });
+}
+
+function cargarRespuestas() {
+    const { carrera, anio } = getFilters();
+    const campo = document.getElementById('campo-respuestas').value;
+    const params = new URLSearchParams({ campo });
+    if (carrera) params.append('carrera', carrera);
+    if (anio) params.append('anio', anio);
+
+    fetch("{% url 'survey_respuestas_api' %}?" + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            const lista = document.getElementById('respuestas-lista');
+            if (!data.respuestas.length) {
+                lista.innerHTML = '<p class="text-muted">No hay respuestas.</p>';
+                return;
+            }
+            lista.innerHTML = data.respuestas.map((r, i) =>
+                `<div class="border-bottom py-2 small">${i+1}. ${r}</div>`
+            ).join('');
+        });
 }
 
 function renderMatriz(matriz) {
@@ -249,26 +256,6 @@ function cargarDatos() {
             if (data.interes_tematicas) renderPie('chart-interes', data.interes_tematicas);
             if (data.matriz) renderMatriz(data.matriz);
             if (data.talk_ratings) renderCharlas(data.talk_ratings);
-        });
-}
-
-function analizarIA() {
-    const { carrera, anio } = getFilters();
-    const campo = document.getElementById('campo-ia').value;
-    const params = new URLSearchParams({ campo });
-    if (carrera) params.append('carrera', carrera);
-    if (anio) params.append('anio', anio);
-
-    document.getElementById('ia-loading').classList.remove('d-none');
-    document.getElementById('ia-resultado').classList.add('d-none');
-
-    fetch("{% url 'survey_analizar_ia' %}?" + params.toString())
-        .then(r => r.json())
-        .then(data => {
-            document.getElementById('ia-loading').classList.add('d-none');
-            document.getElementById('ia-resultado').classList.remove('d-none');
-            document.getElementById('ia-total-resp').textContent = `Analizadas ${data.total_respuestas} respuestas`;
-            document.getElementById('ia-texto').textContent = data.resultado;
         });
 }
 
