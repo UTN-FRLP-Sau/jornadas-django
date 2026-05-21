@@ -1,0 +1,88 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+
+{% block content %}
+
+<!-- Toggle fijo, siempre visible -->
+<button id="sidebar-toggle" class="btn btn-sm border-0" 
+    style="position: fixed; top: 80px; left: 10px; z-index: 999; color: #2b4efe; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; width: 36px; height: 36px;">
+    <i class="fa fa-bars"></i>
+</button>
+
+<div style="padding-top: 70px; display: flex; min-height: 100vh;">
+
+    <!-- Sidebar -->
+    <div id="sidebar" style="width: 220px; min-width: 220px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.07); padding: 60px 0 24px 0; transition: width 0.3s, min-width 0.3s; overflow: hidden;">
+
+        <div class="px-3 mb-3">
+            <h6 class="text-muted text-uppercase small fw-bold mb-0 sidebar-label">Panel Admin</h6>
+        </div>
+
+        <nav class="nav flex-column">
+            <a href="{% url 'admin_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'admin_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-list" style="min-width:16px;"></i><span class="sidebar-label ms-2">Charlas</span>
+            </a>
+            <a href="{% url 'import_attendance' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'import_attendance' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-upload" style="min-width:16px;"></i><span class="sidebar-label ms-2">Importar Asistencia</span>
+            </a>
+            <a href="{% url 'export_talks' %}" class="nav-link px-3 py-2 text-dark">
+                <i class="fa fa-file-excel" style="min-width:16px;"></i><span class="sidebar-label ms-2">Exportar Charlas</span>
+            </a>
+            <div class="nav-item">
+                <a class="nav-link px-3 py-2 text-dark d-flex justify-content-between align-items-center" 
+                   data-bs-toggle="collapse" href="#cronograma-menu" role="button">
+                    <span><i class="fa fa-file-pdf" style="min-width:16px;"></i><span class="sidebar-label ms-2">Cronograma PDF</span></span>
+                    <i class="fa fa-chevron-down sidebar-label small"></i>
+                </a>
+                <div class="collapse" id="cronograma-menu">
+                    <nav class="nav flex-column ps-4">
+                        <a href="{% url 'export_cronograma_pdf' %}" class="nav-link py-1 text-dark small">
+                            <i class="fa fa-download me-2"></i><span class="sidebar-label">Descargar</span>
+                        </a>
+                        <a href="{% url 'export_cronograma_pdf' %}?regenerar=1" class="nav-link py-1 text-dark small">
+                            <i class="fa fa-sync me-2"></i><span class="sidebar-label">Regenerar</span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            <hr class="mx-3">
+            <div class="px-3 mb-2">
+                <h6 class="text-muted text-uppercase small fw-bold sidebar-label">Certificados</h6>
+            </div>
+            <a href="{% url 'certificate_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'certificate_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-certificate" style="min-width:16px;"></i><span class="sidebar-label ms-2">Panel</span>
+            </a>
+            <a href="{% url 'certificate_config' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'certificate_config' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-cog" style="min-width:16px;"></i><span class="sidebar-label ms-2">Configurar</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Contenido principal -->
+    <div id="main-content" style="flex: 1; padding: 32px; overflow-x: auto;">
+        {% block admin_content %}{% endblock %}
+    </div>
+
+</div>
+{% endblock %}
+
+{% block sidebar_scripts %}
+<script>
+const toggle = document.getElementById('sidebar-toggle');
+const sidebar = document.getElementById('sidebar');
+const labels = document.querySelectorAll('.sidebar-label');
+let collapsed = false;
+
+toggle.addEventListener('click', () => {
+    collapsed = !collapsed;
+    if (collapsed) {
+        sidebar.style.width = '0px';
+        sidebar.style.minWidth = '0px';
+    } else {
+        sidebar.style.width = '220px';
+        sidebar.style.minWidth = '220px';
+    }
+});
+</script>
+{% endblock %}
+{% endwith %}

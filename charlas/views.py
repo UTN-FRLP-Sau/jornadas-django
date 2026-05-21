@@ -1,3 +1,7 @@
+import threading
+from django.utils import timezone
+from django import forms as django_forms
+from .models import Registration, Talk, Certificate, CertificateConfig
 from weasyprint import HTML
 from django.template.loader import render_to_string
 from django.core.mail import get_connection
@@ -22,15 +26,201 @@ from django.contrib.auth import views as auth_views
 
 from charlas.constants import DEPT_COLORS, DEPT_NAMES, DEPT_ORDER
 from .forms import RegistrationForm, TalkForm
-from .models import Registration, Talk
+from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate, TalkRating, Survey
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
-
+from pypdf import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.lib import colors
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
+
+def _generate_certificate_pdf(cert):
+    template_path = settings.BASE_DIR / 'charlas' / 'static' / \
+        'charlas' / 'img' / 'template_certificado.pdf'
+    output_path = settings.MEDIA_ROOT / \
+        'certificados' / f'cert_{cert.codigo}.pdf'
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Crear overlay con el texto
+    overlay_buffer = BytesIO()
+    c = canvas.Canvas(overlay_buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)  # 842 x 595 pts
+
+    # Apellido — mayúsculas, centrado
+    c.setFont('Helvetica-Bold', 28)
+    c.setFillColor(colors.HexColor('#0F172B'))
+    apellido = cert.apellido.upper()
+    c.drawCentredString(width / 2, height / 2 + 20, apellido)
+
+    # Nombre — title case
+    c.setFont('Helvetica', 24)
+    nombre = cert.nombre.title()
+    c.drawCentredString(width / 2, height / 2 - 20, nombre)
+
+    # DNI — más pequeño
+    c.setFont('Helvetica', 14)
+    c.setFillColor(colors.HexColor('#666565'))
+    c.drawCentredString(width / 2, height / 2 - 55, f'DNI: {cert.dni}')
+
+    # Frase de validación — abajo, pequeña
+    c.setFont('Helvetica', 9)
+    c.setFillColor(colors.HexColor('#999999'))
+    validate_url = f'{settings.SITE_URL}/certificado/validar/'
+    c.drawCentredString(
+        width / 2, 60, f'Validá este certificado ingresando el código {cert.codigo} en: {validate_url}')
+
+    c.save()
+    overlay_buffer.seek(0)
+
+    # Superponer sobre el template
+    template_pdf = PdfReader(str(template_path))
+    overlay_pdf = PdfReader(overlay_buffer)
+
+    writer = PdfWriter()
+    page = template_pdf.pages[0]
+    page.merge_page(overlay_pdf.pages[0])
+    writer.add_page(page)
+
+    with open(output_path, 'wb') as f:
+        writer.write(f)
+
+    return f'certificados/cert_{cert.codigo}.pdf'
+
+
+
+def _run_emission(job_id, config_id):
+    import django
+    from charlas.models import Registration, Certificate, CertificateConfig, EmissionJob
+
+    job = EmissionJob.objects.get(id=job_id)
+    config = CertificateConfig.objects.get(id=config_id)
+    job.status = 'procesando'
+    job.save()
+
+    try:
+        dnis = Registration.objects.filter(
+            attended=True).values_list('dni', flat=True).distinct()
+        elegibles = [dni for dni in dnis if _evaluar_alumno(
+            dni, config) and not Certificate.objects.filter(dni=dni).exists()]
+        job.total = len(elegibles)
+        job.save()
+
+        for dni in elegibles:
+            reg = Registration.objects.filter(
+                dni=dni, attended=True).select_related('talk').first()
+            cert = Certificate.objects.create(
+                nombre=reg.nombre,
+                apellido=reg.apellido,
+                dni=reg.dni,
+                legajo=reg.legajo,
+                correo=reg.correo,
+                config=config,
+            )
+            ok = _send_certificate_email(cert)
+            if ok:
+                job.enviados += 1
+            else:
+                job.errores += 1
+            job.save()
+
+        job.status = 'completado'
+        job.finished_at = timezone.now()
+        job.save()
+
+    except Exception as e:
+        job.status = 'error'
+        job.finished_at = timezone.now()
+        job.save()
+        print(f'[EMISSION] Error: {e}')
+
+
+def _send_certificate_email(cert):
+    try:
+        from django.core.mail import get_connection
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        from django.template.loader import render_to_string
+
+        html_body = render_to_string('charlas/email_certificado.html', {
+            'cert': cert,
+            'site_url': settings.SITE_URL,
+        })
+
+        msg = MIMEMultipart('mixed')
+        msg['Subject'] = 'Tu certificado — Jornadas de Formación Profesional 2026'
+        msg['From'] = settings.DEFAULT_FROM_EMAIL
+        msg['To'] = cert.correo
+
+        alt = MIMEMultipart('alternative')
+        alt.attach(MIMEText(html_body, 'html'))
+        msg.attach(alt)
+        '''
+        # Generar PDF
+        archivo_path = settings.MEDIA_ROOT / cert.archivo if cert.archivo else None
+
+        if archivo_path and archivo_path.exists():
+            with open(archivo_path, 'rb') as f:
+                pdf_bytes = f.read()
+
+            from email.mime.application import MIMEApplication
+            pdf_mime = MIMEApplication(pdf_bytes, _subtype='pdf')
+            pdf_mime.add_header(
+                'Content-Disposition', 'attachment',
+                filename=f'certificado_{cert.apellido}_{cert.nombre}.pdf'
+            )
+            msg.attach(pdf_mime)
+        '''
+
+        connection = get_connection()
+        connection.open()
+        connection.connection.sendmail(
+            settings.DEFAULT_FROM_EMAIL,
+            [cert.correo],
+            msg.as_string()
+        )
+        connection.close()
+        return True
+    except Exception as exc:
+        print(f'[CERT] Error enviando a {cert.correo}: {exc}')
+        return False
+
+
+def _evaluar_alumno(dni, config):
+    """
+    Devuelve True si el alumno cumple las condiciones de la config.
+    """
+    regs = Registration.objects.filter(
+        dni=dni, attended=True).select_related('talk')
+
+    if not regs.exists():
+        return False
+
+    if config.requiere_magistral:
+        tiene_magistral = regs.filter(talk__department='Magistral').exists()
+        if not tiene_magistral:
+            return False
+
+    # Excluir magistrales del conteo
+    regs_no_magistral = regs.exclude(talk__department='Magistral')
+
+    if config.modalidad == 'total':
+        return regs_no_magistral.count() >= config.minimo
+    
+    elif config.modalidad == 'por_dia':
+        dias = {}
+        for reg in regs_no_magistral:
+            fecha = reg.talk.date
+            dias.setdefault(fecha, 0)
+            dias[fecha] += 1
+        return all(count >= config.minimo for count in dias.values()) and len(dias) > 0
+
+    return False
+
 def sanitize_excel(value):
     if not isinstance(value, str):
         return value
@@ -590,3 +780,350 @@ def export_import_results(request):
     )
     response['Content-Disposition'] = 'attachment; filename="resultado_importacion.xlsx"'
     return response
+
+
+@login_required
+def certificate_dashboard(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    elegibles = []
+
+    if config:
+        # Obtener todos los DNIs con asistencia
+        dnis = Registration.objects.filter(
+            attended=True).values_list('dni', flat=True).distinct()
+
+        for dni in dnis:
+            if _evaluar_alumno(dni, config):
+                reg = Registration.objects.filter(
+                    dni=dni, attended=True).select_related('talk').first()
+                ya_tiene = Certificate.objects.filter(dni=dni).exists()
+                elegibles.append({
+                    'dni': dni,
+                    'nombre': reg.nombre,
+                    'apellido': reg.apellido,
+                    'legajo': reg.legajo,
+                    'correo': reg.correo,
+                    'charlas': Registration.objects.filter(dni=dni, attended=True).count(),
+                    'ya_emitido': ya_tiene,
+                })
+
+    return render(request, 'charlas/certificate_dashboard.html', {
+        'config': config,
+        'elegibles': elegibles,
+        'total': len(elegibles),
+        'pendientes': sum(1 for e in elegibles if not e['ya_emitido']),
+    })
+
+
+@login_required
+def certificate_config(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+
+    class ConfigForm(django_forms.ModelForm):
+        class Meta:
+            model = CertificateConfig
+            fields = ['modalidad', 'minimo', 'requiere_magistral', 'descarga_habilitada', 'mensaje_bloqueado']
+            widgets = {
+                'modalidad': django_forms.Select(attrs={'class': 'form-select'}),
+                'minimo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+                'requiere_magistral': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                'descarga_habilitada': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                'mensaje_bloqueado': django_forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            }
+            labels = {
+                'modalidad': 'Modalidad',
+                'minimo': 'Mínimo de charlas',
+                'requiere_magistral': 'Requiere al menos una magistral',
+                'descarga_habilitada': 'Habilitar descarga de certificados',
+                'mensaje_bloqueado': 'Mensaje cuando la descarga está bloqueada',
+            }
+
+    form = ConfigForm(instance=config)
+
+    if request.method == 'POST':
+        form = ConfigForm(request.POST, instance=config)
+        if form.is_valid():
+            # Desactivar configs anteriores
+            CertificateConfig.objects.update(activa=False)
+            nueva = form.save(commit=False)
+            nueva.activa = True
+            nueva.save()
+            return redirect('certificate_dashboard')
+
+    return render(request, 'charlas/certificate_config.html', {'form': form, 'config': config})
+
+
+@login_required
+def certificate_emit(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    if not config:
+        return redirect('certificate_dashboard')
+
+    dnis = Registration.objects.filter(
+        attended=True).values_list('dni', flat=True).distinct()
+    emitidos = 0
+    errores = 0
+
+    for dni in dnis:
+        if not _evaluar_alumno(dni, config):
+            continue
+        if Certificate.objects.filter(dni=dni).exists():
+            continue
+
+        reg = Registration.objects.filter(
+            dni=dni, attended=True).select_related('talk').first()
+
+        cert = Certificate.objects.create(
+            nombre=reg.nombre,
+            apellido=reg.apellido,
+            dni=reg.dni,
+            legajo=reg.legajo,
+            correo=reg.correo,
+            config=config,
+        )
+        try:
+            archivo = _generate_certificate_pdf(cert)
+            cert.archivo = archivo
+            cert.save()
+        except Exception as e:
+            print(f'[CERT PDF] Error generando PDF para {cert.dni}: {e}')
+
+        # Generar y enviar — por ahora placeholder
+        ok = _send_certificate_email(cert)
+        if ok:
+            emitidos += 1
+        else:
+            errores += 1
+
+    return render(request, 'charlas/certificate_emit_result.html', {
+        'emitidos': emitidos,
+        'errores': errores,
+    })
+
+
+@login_required
+def certificate_emit(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+    if not config:
+        return redirect('certificate_dashboard')
+
+    # Si hay un job procesando, redirigir al status
+    job_activo = EmissionJob.objects.filter(status='procesando').first()
+    if job_activo:
+        return redirect('certificate_emit_status', job_id=job_activo.id)
+
+    if request.method == 'POST':
+        job = EmissionJob.objects.create()
+        t = threading.Thread(target=_run_emission, args=(
+            job.id, config.id), daemon=True)
+        t.start()
+        return redirect('certificate_emit_status', job_id=job.id)
+
+    return render(request, 'charlas/certificate_emit_confirm.html', {'config': config})
+
+
+@login_required
+def certificate_emit_status(request, job_id):
+    job = get_object_or_404(EmissionJob, id=job_id)
+    return render(request, 'charlas/certificate_emit_status.html', {'job': job})
+
+
+@login_required
+def certificate_emit_status_api(request, job_id):
+    job = get_object_or_404(EmissionJob, id=job_id)
+    return JsonResponse({
+        'status': job.status,
+        'total': job.total,
+        'enviados': job.enviados,
+        'errores': job.errores,
+        'finished': job.status in ('completado', 'error'),
+    })
+
+
+def certificate_validate(request):
+    cert = None
+    regs = []
+    error = None
+
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+        codigo = request.POST.get('codigo', '').strip()
+
+        try:
+            cert = Certificate.objects.get(dni=dni, codigo=codigo)
+            regs = Registration.objects.filter(
+                dni=dni, attended=True
+            ).select_related('talk').order_by('talk__date', 'talk__time')
+        except Certificate.DoesNotExist:
+            error = 'No se encontró un certificado con ese DNI y código.'
+
+    return render(request, 'charlas/certificate_validate.html', {
+        'cert': cert,
+        'regs': regs,
+        'error': error,
+    })
+
+
+def certificate_download(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+     # Verificar si la descarga está habilitada
+    if not config or not config.descarga_habilitada:
+        mensaje = config.mensaje_bloqueado if config else 'La descarga de certificados no está disponible.'
+        return render(request, 'charlas/certificate_blocked.html', {'mensaje': mensaje})
+
+    cert = None
+    regs = []
+    cumple = False
+    error = None
+
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+
+        if not dni:
+            error = 'Ingresá tu DNI.'
+        else:
+            cert = Certificate.objects.filter(dni=dni).first()
+            if cert:
+                cumple = True
+                # Generar PDF si no existe
+                if not cert.archivo:
+                    try:
+                        archivo = _generate_certificate_pdf(cert)
+                        cert.archivo = archivo
+                        cert.save()
+                    except Exception as e:
+                        print(f'[CERT PDF] Error: {e}')
+                # Si no completó la encuesta, redirigir
+                survey_obj = Survey.objects.filter(certificate=cert).first()
+                if not survey_obj or not survey_obj.completada:
+                    return redirect('survey', dni=dni)
+                regs = Registration.objects.filter(
+                    dni=dni, attended=True
+                ).select_related('talk').order_by('talk__date', 'talk__time')
+            else:
+                regs = Registration.objects.filter(
+                    dni=dni, attended=True
+                ).select_related('talk').order_by('talk__date', 'talk__time')
+                cumple = False
+
+    return render(request, 'charlas/certificate_download.html', {
+        'cert': cert,
+        'regs': regs,
+        'cumple': cumple,
+        'error': error,
+        'submitted': request.method == 'POST',
+    })
+
+
+def survey(request, dni, step=1):
+    cert = get_object_or_404(Certificate, dni=dni)
+    survey_obj, _ = Survey.objects.get_or_create(certificate=cert)
+
+    if survey_obj.completada:
+        return redirect('survey_done', dni=dni)
+
+    # Charlas asistidas (excluye magistrales del conteo pero las incluye para encuesta)
+    regs = Registration.objects.filter(
+        dni=dni, attended=True
+    ).select_related('talk').order_by('talk__date', 'talk__time')
+
+    # 1 bienvenida + 2 generales + 3 empresas + 4 laboratorios + N charlas
+    total_steps = 4 + regs.count()
+
+    if request.method == 'POST':
+        if step == 2:
+            survey_obj.organizacion = request.POST.get('organizacion')
+            survey_obj.instalaciones = request.POST.get('instalaciones')
+            survey_obj.comunicacion = request.POST.get('comunicacion')
+            survey_obj.tematicas = request.POST.get('tematicas')
+            survey_obj.comentario_general = request.POST.get(
+                'comentario_general', '')
+            survey_obj.save()
+
+        elif step == 3:
+            survey_obj.feria_empresas_puntuacion = request.POST.get(
+                'feria_empresas_puntuacion')
+            survey_obj.feria_empresas_contacto = request.POST.get(
+                'feria_empresas_contacto') == 'si'
+            survey_obj.feria_empresas_comentario = request.POST.get(
+                'feria_empresas_comentario', '')
+            survey_obj.save()
+
+        elif step == 4:
+            survey_obj.feria_laboratorios_puntuacion = request.POST.get(
+                'feria_laboratorios_puntuacion')
+            survey_obj.feria_laboratorios_conocia = request.POST.get(
+                'feria_laboratorios_conocia') == 'si'
+            survey_obj.feria_laboratorios_comentario = request.POST.get(
+                'feria_laboratorios_comentario', '')
+            survey_obj.save()
+
+        elif step >= 5:
+            talk_index = step - 5
+            if talk_index < regs.count():
+                reg = regs[talk_index]
+                TalkRating.objects.update_or_create(
+                    survey=survey_obj,
+                    talk=reg.talk,
+                    defaults={
+                        'puntuacion_disertante': request.POST.get('puntuacion_disertante'),
+                        'puntuacion_contenido': request.POST.get('puntuacion_contenido'),
+                        'comentario': request.POST.get('comentario', ''),
+                    }
+                )
+
+        if step >= total_steps:
+            survey_obj.completada = True
+            survey_obj.save()
+            return redirect('survey_done', dni=dni)
+
+        return redirect('survey_step', dni=dni, step=step + 1)
+
+    # GET — determinar qué mostrar
+    context = {
+        'cert': cert,
+        'step': step,
+        'total_steps': total_steps,
+        'survey': survey_obj,
+    }
+
+    if step == 1:
+        template = 'charlas/survey_welcome.html'
+
+
+    elif step == 2:
+        context['fields'] = [
+            ('organizacion', 'Organización general del evento'),
+            ('instalaciones', 'Instalaciones y espacio físico'),
+            ('comunicacion', 'Comunicación previa al evento'),
+            ('tematicas', 'Temáticas de las charlas en general'),
+        ]
+        template = 'charlas/survey_general.html'
+
+    elif step == 3:
+        template = 'charlas/survey_empresas.html'
+
+    elif step == 4:
+        template = 'charlas/survey_laboratorios.html'
+
+    elif step >= 5:
+        talk_index = step - 5
+        if talk_index < regs.count():
+            context['reg'] = regs[talk_index]
+            context['talk_num'] = talk_index + 1
+        template = 'charlas/survey_talk.html'
+
+    return render(request, template, context)
+
+
+def survey_done(request, dni):
+    cert = get_object_or_404(Certificate, dni=dni)
+    if not cert.archivo:
+        try:
+            from charlas.views import _generate_certificate_pdf
+            archivo = _generate_certificate_pdf(cert)
+            cert.archivo = archivo
+            cert.save()
+        except Exception as e:
+            print(f'[CERT PDF] Error: {e}')
+    return render(request, 'charlas/survey_done.html', {'cert': cert})

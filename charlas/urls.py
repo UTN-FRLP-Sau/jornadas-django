@@ -46,4 +46,28 @@ urlpatterns = [
     path('admin/scan/<int:pk>/', views.admin_scan, name='admin_scan'),
     path('admin/api/scan/', views.api_scan, name='api_scan'),
     
+    # Certificados
+    path('admin/certificados/', views.certificate_dashboard,
+         name='certificate_dashboard'),
+    path('admin/certificados/config/',
+         views.certificate_config, name='certificate_config'),
+    path('admin/certificados/emitir/',
+         views.certificate_emit, name='certificate_emit'),
+    path('admin/certificados/emitir/',
+         views.certificate_emit, name='certificate_emit'),
+    path('admin/certificados/emitir/<int:job_id>/',
+         views.certificate_emit_status, name='certificate_emit_status'),
+    path('admin/certificados/emitir/<int:job_id>/api/',
+         views.certificate_emit_status_api, name='certificate_emit_status_api'),
+    path('certificado/validar/', views.certificate_validate,
+         name='certificate_validate'),
+    path('certificado/descarga/', views.certificate_download,
+         name='certificate_download'),
+    
+    # Encuesta
+    path('certificado/encuesta/<str:dni>/', views.survey, name='survey'),
+    path('certificado/encuesta/<str:dni>/<int:step>/',
+         views.survey, name='survey_step'),
+    path('certificado/encuesta/<str:dni>/listo/',
+         views.survey_done, name='survey_done'),
 ]

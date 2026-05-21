@@ -1,0 +1,107 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-5">
+                <div class="text-center mb-5">
+                    <h5 class="text-primary-gradient fw-medium">Jornadas de Formación Profesional</h5>
+                    <h1 class="mb-0">Descargá tu Certificado</h1>
+                </div>
+
+                <div class="card p-4 p-md-5 mb-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">DNI</label>
+                            <input type="text" name="dni" class="form-control" placeholder="Ej: 40123456" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary-gradient py-3 w-100 rounded-pill">
+                            Buscar
+                        </button>
+                    </form>
+                </div>
+
+                {% if error %}
+                <div class="alert alert-danger text-center">
+                    <i class="fa fa-times-circle me-2"></i>{{ error }}
+                </div>
+                {% endif %}
+
+                {% if submitted %}
+                    {% if cumple %}
+                    <div class="card p-4 border-0 shadow-lg mb-4">
+                        <div class="text-center mb-4">
+                            <i class="fa fa-check-circle text-success mb-3" style="font-size:60px;"></i>
+                            <h4 class="mb-1">¡Certificado disponible!</h4>
+                        </div>
+                        <table class="table table-borderless mb-4">
+                            <tr>
+                                <td class="text-muted">Nombre</td>
+                                <td class="fw-bold">{{ cert.apellido }}, {{ cert.nombre }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">DNI</td>
+                                <td class="fw-bold">{{ cert.dni }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Legajo</td>
+                                <td class="fw-bold">{{ cert.legajo }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Código</td>
+                                <td class="fw-bold text-primary" style="letter-spacing:2px;">{{ cert.codigo }}</td>
+                            </tr>
+                        </table>
+                        {% if cert.archivo %}
+                        <a href="{{ cert.archivo.url }}" class="btn btn-primary-gradient rounded-pill py-3 w-100">
+                            <i class="fa fa-download me-2"></i>Descargar Certificado
+                        </a>
+                        {% else %}
+                        <div class="alert alert-warning text-center">
+                            El certificado está siendo generado. Intentá más tarde.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="card p-4 border-0 shadow-lg">
+                        <div class="text-center mb-4">
+                            <i class="fa fa-times-circle text-danger mb-3" style="font-size:60px;"></i>
+                            <h4 class="mb-1">No tenés certificado disponible</h4>
+                            {% if regs %}
+                            <p class="text-muted">No cumpliste con las condiciones requeridas. Estas son las charlas a las que asististe:</p>
+                            {% else %}
+                            <p class="text-muted">No registramos asistencia a ninguna charla con ese DNI.</p>
+                            {% endif %}
+                        </div>
+                        {% if regs %}
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Charla</th>
+                                    <th>Fecha</th>
+                                    <th>Departamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reg in regs %}
+                                <tr>
+                                    <td class="fw-bold">{{ reg.talk.title }}</td>
+                                    <td>{{ reg.talk.date }}</td>
+                                    <td><span class="badge bg-secondary">{{ reg.talk.department }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

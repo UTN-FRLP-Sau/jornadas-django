@@ -1,0 +1,86 @@
+{% extends 'charlas/base_admin.html' %}
+{% with force_white_nav=True %}
+{% block admin_content %}
+<div class="container-xxl py-5">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <div class="card p-5 shadow-lg border-0 rounded-3">
+
+                    <div id="status-procesando" {% if job.status != 'procesando' %}style="display:none"{% endif %}>
+                        <div class="spinner-border text-primary mb-4" style="width:60px;height:60px;"></div>
+                        <h2 class="mb-3">Enviando certificados...</h2>
+                        <div class="progress mb-3" style="height:12px;">
+                            <div id="progress-bar" class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                                style="width: 0%"></div>
+                        </div>
+                        <p class="text-muted">
+                            <span id="enviados">{{ job.enviados }}</span> de <span id="total">{{ job.total }}</span> enviados
+                            — <span id="errores">{{ job.errores }}</span> errores
+                        </p>
+                    </div>
+
+                    <div id="status-completado" {% if job.status != 'completado' %}style="display:none"{% endif %}>
+                        <i class="fa fa-check-circle text-success mb-4" style="font-size:60px;"></i>
+                        <h2 class="mb-3">¡Listo!</h2>
+                        <p class="text-muted mb-4">
+                            Se enviaron <strong id="final-enviados">{{ job.enviados }}</strong> certificados
+                            con <strong id="final-errores">{{ job.errores }}</strong> errores.
+                        </p>
+                        <a href="{% url 'certificate_dashboard' %}" class="btn btn-primary-gradient rounded-pill px-4">
+                            Volver al Panel
+                        </a>
+                    </div>
+
+                    <div id="status-error" {% if job.status != 'error' %}style="display:none"{% endif %}>
+                        <i class="fa fa-times-circle text-danger mb-4" style="font-size:60px;"></i>
+                        <h2 class="mb-3">Error en la emisión</h2>
+                        <a href="{% url 'certificate_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-4">
+                            Volver al Panel
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const jobId = {{ job.id }};
+const apiUrl = "{% url 'certificate_emit_status_api' job.id %}";
+
+function poll() {
+    fetch(apiUrl)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('enviados').textContent = data.enviados;
+            document.getElementById('total').textContent = data.total;
+            document.getElementById('errores').textContent = data.errores;
+
+            const pct = data.total > 0 ? Math.round(data.enviados / data.total * 100) : 0;
+            document.getElementById('progress-bar').style.width = pct + '%';
+
+            if (data.finished) {
+                document.getElementById('status-procesando').style.display = 'none';
+                if (data.status === 'completado') {
+                    document.getElementById('final-enviados').textContent = data.enviados;
+                    document.getElementById('final-errores').textContent = data.errores;
+                    document.getElementById('status-completado').style.display = 'block';
+                } else {
+                    document.getElementById('status-error').style.display = 'block';
+                }
+            } else {
+                setTimeout(poll, 2000);
+            }
+        });
+}
+
+{% if job.status == 'procesando' or job.status == 'pendiente' %}
+setTimeout(poll, 2000);
+{% endif %}
+</script>
+{% endblock %}
+{% endwith %}
