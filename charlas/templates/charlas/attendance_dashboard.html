@@ -9,19 +9,19 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;">
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
       <p style="font-size:13px;color:#666;margin:0 0 4px;">Total inscriptos</p>
-      <p style="font-size:24px;font-weight:500;margin:0;" id="m-inscriptos">—</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-inscriptos">{{ total_inscriptos }}</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
       <p style="font-size:13px;color:#666;margin:0 0 4px;">Total presentes</p>
-      <p style="font-size:24px;font-weight:500;margin:0;" id="m-presentes">—</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-presentes">{{ total_presentes }}</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
       <p style="font-size:13px;color:#666;margin:0 0 4px;">Asistencia global</p>
-      <p style="font-size:24px;font-weight:500;margin:0;" id="m-pct">—</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-pct">{% widthratio total_presentes total_inscriptos 100 %}%</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
       <p style="font-size:13px;color:#666;margin:0 0 4px;" id="m-charlas-label">Charlas realizadas</p>
-      <p style="font-size:24px;font-weight:500;margin:0;" id="m-charlas">—</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-charlas">{{ total_charlas }}</p>
     </div>
   </div>
 

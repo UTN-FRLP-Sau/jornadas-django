@@ -1139,19 +1139,19 @@ def survey_done(request, dni):
 def attendance_dashboard(request):
     from charlas.constants import DEPT_COLORS, DEPT_ORDER
 
+    total_inscriptos = Registration.objects.values('dni').distinct().count()
+    total_presentes = Registration.objects.filter(
+        attended=True).values('dni').distinct().count()
+
     departments = {}
     for dept in DEPT_ORDER:
         talks = Talk.objects.filter(department=dept)
-    
-        # Alumnos únicos inscriptos y presentes en este depto
         inscriptos_unicos = Registration.objects.filter(
             talk__department=dept
         ).values('dni').distinct().count()
-
         presentes_unicos = Registration.objects.filter(
             talk__department=dept, attended=True
         ).values('dni').distinct().count()
-    
         dept_data = {
             'dept': dept,
             'color': DEPT_COLORS.get(dept, '#2b4efe'),
@@ -1160,17 +1160,20 @@ def attendance_dashboard(request):
             'charlas': []
         }
         for talk in talks:
-            inscriptos = talk.registered_count
-            presentes = talk.registrations.filter(attended=True).count()
             dept_data['charlas'].append({
                 'titulo': talk.title,
                 'fecha': talk.date,
-                'inscriptos': inscriptos,
-                'presentes': presentes,
+                'inscriptos': talk.registered_count,
+                'presentes': talk.registrations.filter(attended=True).count(),
             })
         departments[dept] = dept_data
-        
+
     data = list(departments.values())
+    total_charlas = sum(len(d['charlas']) for d in data)
+
     return render(request, 'charlas/attendance_dashboard.html', {
         'departments': json.dumps(data),
+        'total_inscriptos': total_inscriptos,
+        'total_presentes': total_presentes,
+        'total_charlas': total_charlas,
     })
