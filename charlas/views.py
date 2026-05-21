@@ -1536,6 +1536,9 @@ def reclamo_nuevo(request):
     else:
         return render(request, 'charlas/reclamo_cerrado.html', {'fecha_cierre': None})
 
+    talks = Talk.objects.all().order_by('date', 'time')
+    dias = ['Martes 19 de Mayo', 'Miércoles 20 de Mayo', 'Jueves 21 de Mayo']
+
     if request.method == 'POST':
         dni = request.POST.get('dni', '').strip()
         legajo = request.POST.get('legajo', '').strip()
@@ -1549,6 +1552,25 @@ def reclamo_nuevo(request):
         talk_id = request.POST.get('talk_id', '').strip()
         dia = request.POST.get('dia', '').strip()
         archivo = request.FILES.get('archivo')
+        dni_repeat = request.POST.get('dni_repeat', '').strip()
+        legajo_repeat = request.POST.get('legajo_repeat', '').strip()
+        correo_repeat = request.POST.get('correo_repeat', '').strip()
+
+        errores = []
+        if dni != dni_repeat:
+            errores.append('Los DNI no coinciden.')
+        if legajo != legajo_repeat:
+            errores.append('Los legajos no coinciden.')
+        if correo != correo_repeat:
+            errores.append('Los correos no coinciden.')
+
+        if errores:
+            return render(request, 'charlas/reclamo_nuevo.html', {
+                'talks': talks,
+                'dias': dias,
+                'config': config,
+                'errores': errores,
+            })
 
         talk = None
         if talk_id:
@@ -1563,9 +1585,6 @@ def reclamo_nuevo(request):
         )
         _send_reclamo_confirmacion(reclamo)
         return redirect('reclamo_confirmar', pk=reclamo.pk)
-
-    talks = Talk.objects.all().order_by('date', 'time')
-    dias = ['Martes 19 de Mayo', 'Miércoles 20 de Mayo', 'Jueves 21 de Mayo']
 
     return render(request, 'charlas/reclamo_nuevo.html', {
         'talks': talks,

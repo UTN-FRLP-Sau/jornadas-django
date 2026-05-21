@@ -15,6 +15,13 @@
                 </div>
 
                 <div class="card p-4 p-md-5 shadow-sm border-0">
+                {% if errores %}
+                <div class="alert alert-danger mb-4">
+                    <ul class="mb-0">
+                        {% for e in errores %}<li>{{ e }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
                     <form method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
 
@@ -30,15 +37,27 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">DNI</label>
-                                <input type="text" name="dni" class="form-control" required>
+                                <input type="text" name="dni" class="form-control" required autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Repetir DNI</label>
+                                <input type="text" name="dni_repeat" class="form-control" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Legajo</label>
-                                <input type="text" name="legajo" class="form-control" required>
+                                <input type="text" name="legajo" class="form-control" required autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Repetir Legajo</label>
+                                <input type="text" name="legajo_repeat" class="form-control" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Correo electrónico</label>
-                                <input type="email" name="correo" class="form-control" required>
+                                <input type="email" name="correo" class="form-control" required autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Repetir correo electrónico</label>
+                                <input type="email" name="correo_repeat" class="form-control" required autocomplete="off">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Carrera</label>
@@ -116,6 +135,12 @@
 
 {% block scripts %}
 <script>
+
+document.querySelectorAll('[name="dni_repeat"], [name="legajo_repeat"], [name="correo_repeat"]').forEach(el => {
+    el.addEventListener('paste', e => e.preventDefault());
+    el.addEventListener('drop', e => e.preventDefault());
+});
+
 function actualizarFormulario(motivo) {
     const campoCharla = document.getElementById('campo-charla');
     const campoDia = document.getElementById('campo-dia');
