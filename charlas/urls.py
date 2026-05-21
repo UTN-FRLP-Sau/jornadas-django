@@ -84,4 +84,17 @@ urlpatterns = [
          name='survey_talks_dashboard'),
     path('admin/encuesta/charla/<int:talk_id>/',
          views.survey_talk_detail, name='survey_talk_detail'),
+    
+    # Público
+    path('reclamo/', views.reclamo_nuevo, name='reclamo_nuevo'),
+    path('reclamo/confirmar/<int:pk>/',
+         views.reclamo_confirmar, name='reclamo_confirmar'),
+    path('reclamo/ampliar/<int:pk>/<str:token>/',
+         views.reclamo_ampliar, name='reclamo_ampliar'),
+
+    # Admin
+    path('admin/reclamos/', views.reclamos_dashboard, name='reclamos_dashboard'),
+    path('admin/reclamo/<int:pk>/', views.reclamo_detalle, name='reclamo_detalle'),
+    path('admin/reclamo/<int:pk>/resolver/',
+         views.reclamo_resolver, name='reclamo_resolver'),
 ]

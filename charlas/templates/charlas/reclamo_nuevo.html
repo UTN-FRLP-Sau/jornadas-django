@@ -1,0 +1,137 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <h5 class="text-primary-gradient fw-medium">Jornadas de Formación Profesional</h5>
+                    <h1 class="mb-2">Presentar Reclamo</h1>
+                    <p class="text-muted">Completá el formulario para presentar tu reclamo de asistencia.</p>
+                    {% if config %}
+                    <p class="text-muted small">Período de reclamos abierto hasta el {{ config.dias_reclamo }} días desde la emisión de certificados.</p>
+                    {% endif %}
+                </div>
+
+                <div class="card p-4 p-md-5 shadow-sm border-0">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <h5 class="fw-bold mb-4 text-primary">Datos personales</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Apellido</label>
+                                <input type="text" name="apellido" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">DNI</label>
+                                <input type="text" name="dni" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Legajo</label>
+                                <input type="text" name="legajo" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Correo electrónico</label>
+                                <input type="email" name="correo" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Carrera</label>
+                                <select name="carrera" class="form-select" required>
+                                    <option value="">Seleccioná tu carrera</option>
+                                    <option value="Industrial">Ingeniería Industrial</option>
+                                    <option value="Sistemas">Ingeniería en Sistemas de Información</option>
+                                    <option value="Mecánica">Ingeniería Mecánica</option>
+                                    <option value="Química">Ingeniería Química</option>
+                                    <option value="Civil">Ingeniería Civil</option>
+                                    <option value="Eléctrica">Ingeniería en Energía Eléctrica</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h5 class="fw-bold mb-4 text-primary">Motivo del reclamo</h5>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Tipo de reclamo</label>
+                            <select name="motivo" class="form-select" required onchange="actualizarFormulario(this.value)">
+                                <option value="">Seleccioná el motivo</option>
+                                <option value="no_registrado">Fui a una charla pero no se me registró el presente</option>
+                                <option value="trabajo">No pude asistir a las jornadas por trabajo</option>
+                                <option value="no_cursa">No asistí a charlas de un día porque no curso ese día</option>
+                                <option value="superposicion">El cambio de horario generó una superposición de charlas</option>
+                            </select>
+                            <input type="hidden" name="tipo" id="tipo-hidden" value="asistencia">
+                        </div>
+
+                        <!-- Charla específica (para no_registrado y superposicion) -->
+                        <div id="campo-charla" class="mb-4 d-none">
+                            <label class="form-label fw-bold">Charla a la que refiere el reclamo</label>
+                            <select name="talk_id" class="form-select">
+                                <option value="">Seleccioná la charla</option>
+                                {% for talk in talks %}
+                                <option value="{{ talk.pk }}">{{ talk.date }} — {{ talk.time }} | {{ talk.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Día (para trabajo y no_cursa) -->
+                        <div id="campo-dia" class="mb-4 d-none">
+                            <label class="form-label fw-bold">Día al que refiere el reclamo</label>
+                            <select name="dia" class="form-select">
+                                <option value="">Seleccioná el día</option>
+                                {% for dia in dias %}
+                                <option value="{{ dia }}">{{ dia }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Descripción del caso</label>
+                            <textarea name="descripcion" class="form-control" rows="4" placeholder="Describí tu situación con el mayor detalle posible..." required></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Documentación de respaldo <span class="text-muted fw-normal">(opcional)</span></label>
+                            <input type="file" name="archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                            <div class="form-text">Podés adjuntar una foto, captura o PDF que respalde tu reclamo.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'index' %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                            <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">
+                                <i class="fa fa-paper-plane me-2"></i>Enviar Reclamo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function actualizarFormulario(motivo) {
+    const campoCharla = document.getElementById('campo-charla');
+    const campoDia = document.getElementById('campo-dia');
+    const tipoHidden = document.getElementById('tipo-hidden');
+
+    campoCharla.classList.add('d-none');
+    campoDia.classList.add('d-none');
+
+    if (motivo === 'no_registrado' || motivo === 'superposicion') {
+        campoCharla.classList.remove('d-none');
+        tipoHidden.value = motivo === 'no_registrado' ? 'asistencia' : 'justificacion';
+    } else if (motivo === 'trabajo' || motivo === 'no_cursa') {
+        campoDia.classList.remove('d-none');
+        tipoHidden.value = 'justificacion';
+    }
+}
+</script>
+{% endblock %}
+{% endwith %}

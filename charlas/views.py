@@ -1,3 +1,5 @@
+import hashlib
+from .models import Reclamo
 import threading
 from django.utils import timezone
 from django import forms as django_forms
@@ -1441,3 +1443,248 @@ def survey_talk_detail(request, talk_id):
         'comentarios': comentarios,
         'color': DEPT_COLORS.get(talk.department, '#2b4efe'),
     })
+
+
+def _reclamo_token(reclamo):
+    return hashlib.sha256(f"{reclamo.pk}{reclamo.correo}{reclamo.fecha_creacion}".encode()).hexdigest()[:16]
+
+
+def _send_reclamo_confirmacion(reclamo):
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        html = render_to_string('charlas/email_reclamo_confirmacion.html', {
+            'reclamo': reclamo,
+            'site_url': settings.SITE_URL,
+        })
+        msg = EmailMultiAlternatives(
+            subject=f'Reclamo #{reclamo.pk} recibido — Jornadas de Formación Profesional',
+            body='',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[reclamo.correo],
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+    except Exception as e:
+        print(f'[RECLAMO] Error email confirmación: {e}')
+
+
+def _send_reclamo_resolucion(reclamo):
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        html = render_to_string('charlas/email_reclamo_resolucion.html', {
+            'reclamo': reclamo,
+            'site_url': settings.SITE_URL,
+        })
+        msg = EmailMultiAlternatives(
+            subject=f'Tu reclamo #{reclamo.pk} fue resuelto — Jornadas de Formación Profesional',
+            body='',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[reclamo.correo],
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+    except Exception as e:
+        print(f'[RECLAMO] Error email resolución: {e}')
+
+
+def _send_reclamo_ampliacion(reclamo):
+    try:
+        from django.core.mail import EmailMultiAlternatives
+        from django.template.loader import render_to_string
+        token = _reclamo_token(reclamo)
+        html = render_to_string('charlas/email_reclamo_ampliacion.html', {
+            'reclamo': reclamo,
+            'site_url': settings.SITE_URL,
+            'token': token,
+        })
+        msg = EmailMultiAlternatives(
+            subject=f'Tu reclamo #{reclamo.pk} requiere información adicional — Jornadas de Formación Profesional',
+            body='',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[reclamo.correo],
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+    except Exception as e:
+        print(f'[RECLAMO] Error email ampliación: {e}')
+
+
+def reclamo_nuevo(request):
+    config = CertificateConfig.objects.filter(activa=True).first()
+
+    # Verificar si el período de reclamos está abierto
+    if config and config.descarga_habilitada:
+        from datetime import timedelta
+        # Buscar la última emisión
+        ultimo_job = EmissionJob.objects.filter(
+            status='completado').order_by('-finished_at').first()
+        if ultimo_job and ultimo_job.finished_at:
+            fecha_inicio = ultimo_job.finished_at.date() + timedelta(days=1)
+            fecha_cierre_reclamo = fecha_inicio + \
+                timedelta(days=config.dias_reclamo)
+            fecha_cierre_respuesta = fecha_cierre_reclamo + \
+                timedelta(days=config.dias_respuesta)
+            if timezone.now().date() > fecha_cierre_reclamo:
+                return render(request, 'charlas/reclamo_cerrado.html', {
+                    'fecha_cierre': fecha_cierre_reclamo
+                })
+        else:
+            fecha_cierre_reclamo = None
+            fecha_cierre_respuesta = None
+    else:
+        return render(request, 'charlas/reclamo_cerrado.html', {'fecha_cierre': None})
+
+    if request.method == 'POST':
+        dni = request.POST.get('dni', '').strip()
+        legajo = request.POST.get('legajo', '').strip()
+        nombre = request.POST.get('nombre', '').strip()
+        apellido = request.POST.get('apellido', '').strip()
+        carrera = request.POST.get('carrera', '').strip()
+        correo = request.POST.get('correo', '').strip()
+        tipo = request.POST.get('tipo', '').strip()
+        motivo = request.POST.get('motivo', '').strip()
+        descripcion = request.POST.get('descripcion', '').strip()
+        talk_id = request.POST.get('talk_id', '').strip()
+        dia = request.POST.get('dia', '').strip()
+        archivo = request.FILES.get('archivo')
+
+        talk = None
+        if talk_id:
+            talk = Talk.objects.filter(pk=talk_id).first()
+
+        reclamo = Reclamo.objects.create(
+            dni=dni, legajo=legajo, nombre=nombre, apellido=apellido,
+            carrera=carrera, correo=correo, tipo=tipo, motivo=motivo,
+            descripcion=descripcion, talk=talk, dia=dia, archivo=archivo,
+            fecha_cierre_reclamo=fecha_cierre_reclamo,
+            fecha_cierre_respuesta=fecha_cierre_respuesta,
+        )
+        _send_reclamo_confirmacion(reclamo)
+        return redirect('reclamo_confirmar', pk=reclamo.pk)
+
+    talks = Talk.objects.all().order_by('date', 'time')
+    dias = ['Martes 19 de Mayo', 'Miércoles 20 de Mayo', 'Jueves 21 de Mayo']
+
+    return render(request, 'charlas/reclamo_nuevo.html', {
+        'talks': talks,
+        'dias': dias,
+        'config': config,
+    })
+
+
+def reclamo_confirmar(request, pk):
+    reclamo = get_object_or_404(Reclamo, pk=pk)
+    return render(request, 'charlas/reclamo_confirmar.html', {'reclamo': reclamo})
+
+
+def reclamo_ampliar(request, pk, token):
+    reclamo = get_object_or_404(Reclamo, pk=pk)
+    if _reclamo_token(reclamo) != token:
+        return render(request, 'charlas/reclamo_token_invalido.html')
+    if reclamo.estado != 'ampliacion':
+        return redirect('reclamo_confirmar', pk=pk)
+
+    if request.method == 'POST':
+        reclamo.respuesta_ampliacion = request.POST.get(
+            'respuesta_ampliacion', '')
+        archivo = request.FILES.get('archivo')
+        if archivo:
+            reclamo.archivo = archivo
+        reclamo.estado = 'pendiente'
+        reclamo.save()
+        return render(request, 'charlas/reclamo_ampliacion_ok.html', {'reclamo': reclamo})
+
+    return render(request, 'charlas/reclamo_ampliar.html', {'reclamo': reclamo})
+
+
+@login_required
+def reclamos_dashboard(request):
+    estado = request.GET.get('estado', '')
+    qs = Reclamo.objects.all()
+    if estado:
+        qs = qs.filter(estado=estado)
+
+    # Aprobar automáticamente vencidos
+    for r in qs.filter(estado='pendiente'):
+        if r.vencido:
+            r.estado = 'aprobado'
+            r.nota_admin = 'Aprobado automáticamente por vencimiento del plazo.'
+            r.fecha_respuesta = timezone.now()
+            r.save()
+            _aplicar_resolucion(r)
+            _send_reclamo_resolucion(r)
+
+    return render(request, 'charlas/reclamos_dashboard.html', {
+        'reclamos': qs,
+        'estado_filter': estado,
+        'totales': {
+            'pendiente': Reclamo.objects.filter(estado='pendiente').count(),
+            'aprobado': Reclamo.objects.filter(estado='aprobado').count(),
+            'rechazado': Reclamo.objects.filter(estado='rechazado').count(),
+            'ampliacion': Reclamo.objects.filter(estado='ampliacion').count(),
+        }
+    })
+
+
+def _aplicar_resolucion(reclamo):
+    if reclamo.tipo == 'asistencia' or reclamo.resolucion == 'asistencia':
+        if reclamo.talk:
+            reg = Registration.objects.filter(
+                dni=reclamo.dni, talk=reclamo.talk).first()
+            if reg:
+                reg.attended = True
+                reg.save()
+    elif reclamo.resolucion == 'certificado_directo':
+        if not Certificate.objects.filter(dni=reclamo.dni).exists():
+            cert = Certificate.objects.create(
+                nombre=reclamo.nombre,
+                apellido=reclamo.apellido,
+                dni=reclamo.dni,
+                legajo=reclamo.legajo,
+                correo=reclamo.correo,
+            )
+            try:
+                archivo = _generate_certificate_pdf(cert)
+                cert.archivo = archivo
+                cert.save()
+            except:
+                pass
+
+
+@login_required
+def reclamo_detalle(request, pk):
+    reclamo = get_object_or_404(Reclamo, pk=pk)
+    return render(request, 'charlas/reclamo_detalle.html', {'reclamo': reclamo})
+
+
+@login_required
+@require_POST
+def reclamo_resolver(request, pk):
+    reclamo = get_object_or_404(Reclamo, pk=pk)
+    accion = request.POST.get('accion')
+
+    if accion == 'aprobar':
+        reclamo.estado = 'aprobado'
+        reclamo.resolucion = request.POST.get('resolucion', '')
+        reclamo.nota_admin = request.POST.get('nota_admin', '')
+        reclamo.fecha_respuesta = timezone.now()
+        reclamo.save()
+        _aplicar_resolucion(reclamo)
+        _send_reclamo_resolucion(reclamo)
+
+    elif accion == 'rechazar':
+        reclamo.estado = 'rechazado'
+        reclamo.nota_admin = request.POST.get('nota_admin', '')
+        reclamo.fecha_respuesta = timezone.now()
+        reclamo.save()
+        _send_reclamo_resolucion(reclamo)
+
+    elif accion == 'ampliacion':
+        reclamo.estado = 'ampliacion'
+        reclamo.nota_ampliacion = request.POST.get('nota_ampliacion', '')
+        reclamo.save()
+        _send_reclamo_ampliacion(reclamo)
+
+    return redirect('reclamo_detalle', pk=pk)

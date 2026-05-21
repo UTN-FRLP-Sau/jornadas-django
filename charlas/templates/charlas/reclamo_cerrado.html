@@ -1,0 +1,29 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <div class="card p-5 shadow-lg border-0 rounded-3">
+                    <i class="fa fa-lock text-danger mb-4" style="font-size:60px;"></i>
+                    <h2 class="mb-3">Período de reclamos cerrado</h2>
+                    {% if fecha_cierre %}
+                    <p class="text-muted fs-5 mb-4">
+                        El período de presentación de reclamos cerró el <strong>{{ fecha_cierre|date:"d/m/Y" }}</strong>.
+                    </p>
+                    {% else %}
+                    <p class="text-muted fs-5 mb-4">
+                        El período de presentación de reclamos no está disponible en este momento.
+                    </p>
+                    {% endif %}
+                    <a href="{% url 'index' %}" class="btn btn-primary-gradient rounded-pill px-5 py-3">
+                        Volver al inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}
