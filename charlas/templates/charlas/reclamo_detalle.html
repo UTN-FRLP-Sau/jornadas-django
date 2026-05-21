@@ -1,0 +1,184 @@
+{% extends 'charlas/base_admin.html' %}
+{% block admin_content %}
+<div class="mb-4">
+    <a href="{% url 'reclamos_dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 mb-3">
+        <i class="fa fa-arrow-left me-2"></i>Volver
+    </a>
+    <h5 class="text-primary-gradient fw-medium">Reclamo #{{ reclamo.pk|stringformat:"04d" }}</h5>
+    <h1 class="mb-0">{{ reclamo.apellido }}, {{ reclamo.nombre }}</h1>
+</div>
+
+<div class="row g-4">
+    <!-- Datos del reclamo -->
+    <div class="col-lg-8">
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Datos del alumno</h6>
+            <div class="row g-2" style="font-size:14px;">
+                <div class="col-md-4"><span class="text-muted">DNI:</span> {{ reclamo.dni }}</div>
+                <div class="col-md-4"><span class="text-muted">Legajo:</span> {{ reclamo.legajo }}</div>
+                <div class="col-md-4"><span class="text-muted">Carrera:</span> {{ reclamo.carrera }}</div>
+                <div class="col-md-6"><span class="text-muted">Correo:</span> {{ reclamo.correo }}</div>
+                <div class="col-md-6"><span class="text-muted">Fecha:</span> {{ reclamo.fecha_creacion|date:"d/m/Y H:i" }}</div>
+            </div>
+        </div>
+
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Detalle del reclamo</h6>
+            <p class="mb-2"><span class="text-muted">Tipo:</span> <span class="badge bg-secondary">{{ reclamo.get_tipo_display }}</span></p>
+            <p class="mb-2"><span class="text-muted">Motivo:</span> {{ reclamo.get_motivo_display }}</p>
+            {% if reclamo.talk %}
+            <p class="mb-2"><span class="text-muted">Charla:</span> {{ reclamo.talk.title }} — {{ reclamo.talk.date }}</p>
+            {% endif %}
+            {% if reclamo.dia %}
+            <p class="mb-2"><span class="text-muted">Día:</span> {{ reclamo.dia }}</p>
+            {% endif %}
+            <p class="mb-2"><span class="text-muted">Descripción:</span></p>
+            <div class="bg-light p-3 rounded" style="font-size:14px;">{{ reclamo.descripcion }}</div>
+            {% if reclamo.archivo %}
+            <div class="mt-3">
+                <a href="{{ reclamo.archivo.url }}" target="_blank" class="btn btn-outline-secondary rounded-pill btn-sm">
+                    <i class="fa fa-paperclip me-2"></i>Ver adjunto
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Inscripciones del alumno</h6>
+            {% if inscripciones %}
+            <table class="table table-hover align-middle" style="font-size:13px;">
+                <thead>
+                    <tr>
+                        <th>Charla</th>
+                        <th>Fecha</th>
+                        <th>Departamento</th>
+                        <th class="text-center">Asistió</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in inscripciones %}
+                    <tr>
+                        <td class="fw-bold">{{ reg.talk.title }}</td>
+                        <td>{{ reg.talk.date }}</td>
+                        <td><span class="badge bg-secondary">{{ reg.talk.department }}</span></td>
+                        <td class="text-center">
+                            {% if reg.attended %}
+                            <span class="badge bg-success">Presente</span>
+                            {% else %}
+                            <span class="badge bg-danger">Ausente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted small">No se encontraron inscripciones para este DNI.</p>
+            {% endif %}
+        </div>
+
+        {% if reclamo.nota_ampliacion %}
+        <div class="card p-4 mb-4 border-warning">
+            <h6 class="fw-bold mb-3 text-warning">Ampliación solicitada</h6>
+            <p style="font-size:14px;">{{ reclamo.nota_ampliacion }}</p>
+            {% if reclamo.respuesta_ampliacion %}
+            <hr>
+            <h6 class="fw-bold mb-2">Respuesta del alumno</h6>
+            <div class="bg-light p-3 rounded" style="font-size:14px;">{{ reclamo.respuesta_ampliacion }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if reclamo.nota_admin %}
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Resolución administrativa</h6>
+            <p class="mb-2"><span class="text-muted">Resolución:</span> {{ reclamo.get_resolucion_display|default:"—" }}</p>
+            <p style="font-size:14px;">{{ reclamo.nota_admin }}</p>
+            {% if reclamo.fecha_respuesta %}
+            <p class="text-muted small mt-2">Respondido el {{ reclamo.fecha_respuesta|date:"d/m/Y H:i" }}</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Panel de acción -->
+    <div class="col-lg-4">
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Estado actual</h6>
+            {% if reclamo.estado == 'pendiente' %}
+            <span class="badge bg-warning text-dark fs-6 mb-3">Pendiente</span>
+            {% elif reclamo.estado == 'aprobado' %}
+            <span class="badge bg-success fs-6 mb-3">Aprobado</span>
+            {% elif reclamo.estado == 'rechazado' %}
+            <span class="badge bg-danger fs-6 mb-3">Rechazado</span>
+            {% elif reclamo.estado == 'ampliacion' %}
+            <span class="badge bg-info text-dark fs-6 mb-3">Ampliación solicitada</span>
+            {% endif %}
+
+            {% if reclamo.fecha_cierre_respuesta %}
+            <p class="text-muted small">Plazo de respuesta: {{ reclamo.fecha_cierre_respuesta|date:"d/m/Y" }}</p>
+            {% endif %}
+        </div>
+
+        {% if reclamo.estado == 'pendiente' or reclamo.estado == 'ampliacion' %}
+        <div class="card p-4">
+            <h6 class="fw-bold mb-3">Resolver reclamo</h6>
+
+            <!-- Aprobar -->
+            <form method="POST" action="{% url 'reclamo_resolver' reclamo.pk %}" class="mb-3">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="aprobar">
+                {% if reclamo.tipo == 'justificacion' %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Tipo de resolución</label>
+                    <select name="resolucion" class="form-select form-select-sm" required>
+                        <option value="">Seleccioná</option>
+                        <option value="charla">Perdonar charla/s específica/s</option>
+                        <option value="dia">Perdonar día/s completo/s</option>
+                        <option value="certificado_directo">Emitir certificado directamente</option>
+                    </select>
+                </div>
+                {% else %}
+                <input type="hidden" name="resolucion" value="asistencia">
+                {% endif %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Nota para el alumno</label>
+                    <textarea name="nota_admin" class="form-control form-control-sm" rows="3" placeholder="Explicá la decisión..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-success rounded-pill w-100 mb-2">
+                    <i class="fa fa-check me-2"></i>Aprobar
+                </button>
+            </form>
+
+            <!-- Rechazar -->
+            <form method="POST" action="{% url 'reclamo_resolver' reclamo.pk %}" class="mb-3">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="rechazar">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Motivo del rechazo</label>
+                    <textarea name="nota_admin" class="form-control form-control-sm" rows="3" placeholder="Explicá por qué se rechaza..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger rounded-pill w-100 mb-2">
+                    <i class="fa fa-times me-2"></i>Rechazar
+                </button>
+            </form>
+
+            <!-- Ampliación -->
+            {% if reclamo.estado == 'pendiente' %}
+            <form method="POST" action="{% url 'reclamo_resolver' reclamo.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="accion" value="ampliacion">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">Información adicional requerida</label>
+                    <textarea name="nota_ampliacion" class="form-control form-control-sm" rows="3" placeholder="Indicá qué necesitás que el alumno aclare..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-outline-warning rounded-pill w-100">
+                    <i class="fa fa-question-circle me-2"></i>Solicitar ampliación
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

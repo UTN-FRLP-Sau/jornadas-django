@@ -1,0 +1,24 @@
+{% extends 'charlas/base.html' %}
+{% with force_white_nav=True %}
+{% block content %}
+<div class="container-xxl py-5" style="padding-top: 100px !important;">
+    <div class="container py-5 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-6 text-center">
+                <div class="card p-5 shadow-lg border-0 rounded-3">
+                    <i class="fa fa-times-circle text-danger mb-4" style="font-size:60px;"></i>
+                    <h2 class="mb-3">Enlace inválido</h2>
+                    <p class="text-muted fs-5 mb-4">
+                        El enlace que usaste no es válido o ya expiró.
+                        Si necesitás ampliar tu reclamo, contactate con el equipo administrativo.
+                    </p>
+                    <a href="{% url 'index' %}" class="btn btn-primary-gradient rounded-pill px-5 py-3">
+                        Volver al inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% endwith %}

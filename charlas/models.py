@@ -94,6 +94,8 @@ class CertificateConfig(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     descarga_habilitada = models.BooleanField('Descarga habilitada', default=False)
     mensaje_bloqueado = models.TextField('Mensaje cuando está bloqueado', default='La descarga de certificados aún no está habilitada. Te avisaremos por correo cuando esté disponible.')
+    dias_reclamo = models.PositiveIntegerField('Días para reclamar', default=7)
+    dias_respuesta = models.PositiveIntegerField('Días para responder', default=20)
 
     class Meta:
         verbose_name = 'Configuración de Certificados'
@@ -226,3 +228,96 @@ class TalkRating(models.Model):
         verbose_name = 'Puntuación de Charla'
         verbose_name_plural = 'Puntuaciones de Charlas'
         unique_together = ('survey', 'talk')
+
+
+class Reclamo(models.Model):
+    TIPO_CHOICES = [
+        ('asistencia', 'Fui pero no se registró mi presente'),
+        ('justificacion', 'Ausencia justificada'),
+    ]
+    MOTIVO_CHOICES = [
+        ('no_registrado', 'Fui a una charla pero no se me registró el presente'),
+        ('trabajo', 'No pude asistir a las jornadas por trabajo'),
+        ('no_cursa', 'No asistí a charlas de un día porque no curso ese día'),
+        ('superposicion', 'El cambio de horario generó una superposición de charlas'),
+    ]
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+        ('ampliacion', 'Ampliación solicitada'),
+    ]
+    RESOLUCION_CHOICES = [
+        ('charla', 'Perdonar charla/s específica/s'),
+        ('dia', 'Perdonar día/s completo/s'),
+        ('certificado_directo', 'Emitir certificado directamente'),
+        ('asistencia', 'Marcar asistencia como presente'),
+    ]
+    CARRERA_CHOICES = [
+        ('Industrial', 'Ingeniería Industrial'),
+        ('Sistemas', 'Ingeniería en Sistemas de Información'),
+        ('Mecánica', 'Ingeniería Mecánica'),
+        ('Química', 'Ingeniería Química'),
+        ('Civil', 'Ingeniería Civil'),
+        ('Eléctrica', 'Ingeniería en Energía Eléctrica'),
+    ]
+
+    # Datos del alumno
+    dni = models.CharField('DNI', max_length=20)
+    legajo = models.CharField('Legajo', max_length=20)
+    nombre = models.CharField('Nombre', max_length=100)
+    apellido = models.CharField('Apellido', max_length=100)
+    carrera = models.CharField(
+        'Carrera', max_length=50, choices=CARRERA_CHOICES)
+    correo = models.EmailField('Correo')
+
+    # Reclamo
+    tipo = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES)
+    motivo = models.CharField('Motivo', max_length=30, choices=MOTIVO_CHOICES)
+    descripcion = models.TextField('Descripción')
+    talk = models.ForeignKey(Talk, on_delete=models.SET_NULL, null=True,
+                             blank=True, related_name='reclamos', verbose_name='Charla')
+    dia = models.CharField('Día', max_length=50, blank=True, default='')
+    archivo = models.FileField(
+        'Adjunto', upload_to='reclamos/', blank=True, null=True)
+
+    # Estado
+    estado = models.CharField('Estado', max_length=20,
+                              choices=ESTADO_CHOICES, default='pendiente')
+    resolucion = models.CharField(
+        'Resolución', max_length=30, choices=RESOLUCION_CHOICES, blank=True, default='')
+    nota_admin = models.TextField(
+        'Nota del administrador', blank=True, default='')
+    nota_ampliacion = models.TextField(
+        'Solicitud de ampliación', blank=True, default='')
+    respuesta_ampliacion = models.TextField(
+        'Respuesta de ampliación', blank=True, default='')
+
+    # Charlas/días perdonados
+    charlas_perdonadas = models.ManyToManyField(
+        Talk, blank=True, related_name='perdonadas')
+    dias_perdonados = models.CharField(
+        'Días perdonados', max_length=200, blank=True, default='')
+
+    # Fechas
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_respuesta = models.DateTimeField(null=True, blank=True)
+    fecha_cierre_reclamo = models.DateField(
+        'Cierre de reclamos', null=True, blank=True)
+    fecha_cierre_respuesta = models.DateField(
+        'Cierre de respuestas', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Reclamo'
+        verbose_name_plural = 'Reclamos'
+        ordering = ['-fecha_creacion']
+
+    def __str__(self):
+        return f"#{self.pk} — {self.apellido}, {self.nombre} ({self.get_estado_display()})"
+
+    @property
+    def vencido(self):
+        from django.utils import timezone
+        if self.estado == 'pendiente' and self.fecha_cierre_respuesta:
+            return timezone.now().date() > self.fecha_cierre_respuesta
+        return False

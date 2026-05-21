@@ -50,6 +50,13 @@
             </div>
             <hr class="mx-3">
             <div class="px-3 mb-2">
+                <h6 class="text-muted text-uppercase small fw-bold sidebar-label">Reclamos</h6>
+            </div>
+            <a href="{% url 'reclamos_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'reclamos_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">
+                <i class="fa fa-flag" style="min-width:16px;"></i><span class="sidebar-label ms-2">Gestión de Reclamos</span>
+            </a>
+            <hr class="mx-3">
+            <div class="px-3 mb-2">
                 <h6 class="text-muted text-uppercase small fw-bold sidebar-label">Encuesta</h6>
             </div>
             <a href="{% url 'survey_dashboard' %}" class="nav-link px-3 py-2 {% if request.resolver_match.url_name == 'survey_dashboard' %}text-primary fw-bold{% else %}text-dark{% endif %}">

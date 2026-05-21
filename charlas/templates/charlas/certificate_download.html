@@ -95,6 +95,13 @@
                             </tbody>
                         </table>
                         {% endif %}
+                        <!-- Botón de reclamo -->
+                        <div class="text-center mt-4">
+                            <p class="text-muted small mb-2">¿Creés que hay un error? Podés presentar un reclamo.</p>
+                            <a href="{% url 'reclamo_nuevo' %}" class="btn btn-outline-primary rounded-pill px-4">
+                                <i class="fa fa-flag me-2"></i>Presentar Reclamo
+                            </a>
+                        </div>
                     </div>
                     {% endif %}
                 {% endif %}

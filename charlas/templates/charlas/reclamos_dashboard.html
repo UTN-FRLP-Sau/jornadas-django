@@ -1,0 +1,96 @@
+{% extends 'charlas/base_admin.html' %}
+{% block admin_content %}
+<h5 class="text-primary-gradient fw-medium">Administración</h5>
+<h1 class="mb-4">Reclamos de Asistencia</h1>
+
+<!-- Métricas -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Pendientes</p>
+            <h3 class="text-warning">{{ totales.pendiente }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Aprobados</p>
+            <h3 class="text-success">{{ totales.aprobado }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Rechazados</p>
+            <h3 class="text-danger">{{ totales.rechazado }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card p-3 text-center">
+            <p class="text-muted small mb-1">Ampliación</p>
+            <h3 class="text-info">{{ totales.ampliacion }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Filtro -->
+<div class="card p-3 mb-4 bg-light">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'reclamos_dashboard' %}" class="btn btn-sm {% if not estado_filter %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill">Todos</a>
+        <a href="?estado=pendiente" class="btn btn-sm {% if estado_filter == 'pendiente' %}btn-warning{% else %}btn-outline-warning{% endif %} rounded-pill">Pendientes</a>
+        <a href="?estado=ampliacion" class="btn btn-sm {% if estado_filter == 'ampliacion' %}btn-info{% else %}btn-outline-info{% endif %} rounded-pill">Ampliación</a>
+        <a href="?estado=aprobado" class="btn btn-sm {% if estado_filter == 'aprobado' %}btn-success{% else %}btn-outline-success{% endif %} rounded-pill">Aprobados</a>
+        <a href="?estado=rechazado" class="btn btn-sm {% if estado_filter == 'rechazado' %}btn-danger{% else %}btn-outline-danger{% endif %} rounded-pill">Rechazados</a>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Alumno</th>
+                    <th>Carrera</th>
+                    <th>Motivo</th>
+                    <th>Fecha</th>
+                    <th class="text-center">Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reclamos %}
+                <tr>
+                    <td class="fw-bold">#{{ r.pk|stringformat:"04d" }}</td>
+                    <td>{{ r.apellido }}, {{ r.nombre }}<br><small class="text-muted">{{ r.dni }}</small></td>
+                    <td><small>{{ r.carrera }}</small></td>
+                    <td><small>{{ r.get_motivo_display }}</small></td>
+                    <td><small>{{ r.fecha_creacion|date:"d/m/Y H:i" }}</small></td>
+                    <td class="text-center">
+                        {% if r.estado == 'pendiente' %}
+                            {% if r.vencido %}
+                            <span class="badge bg-danger">Vencido</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                            {% endif %}
+                        {% elif r.estado == 'aprobado' %}
+                        <span class="badge bg-success">Aprobado</span>
+                        {% elif r.estado == 'rechazado' %}
+                        <span class="badge bg-danger">Rechazado</span>
+                        {% elif r.estado == 'ampliacion' %}
+                        <span class="badge bg-info text-dark">Ampliación</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'reclamo_detalle' r.pk %}" class="btn btn-sm btn-outline-primary rounded-pill">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No hay reclamos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
