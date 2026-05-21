@@ -43,6 +43,40 @@
             {% endif %}
         </div>
 
+        <div class="card p-4 mb-4">
+            <h6 class="fw-bold mb-3">Inscripciones del alumno</h6>
+            {% if inscripciones %}
+            <table class="table table-hover align-middle" style="font-size:13px;">
+                <thead>
+                    <tr>
+                        <th>Charla</th>
+                        <th>Fecha</th>
+                        <th>Departamento</th>
+                        <th class="text-center">Asistió</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reg in inscripciones %}
+                    <tr>
+                        <td class="fw-bold">{{ reg.talk.title }}</td>
+                        <td>{{ reg.talk.date }}</td>
+                        <td><span class="badge bg-secondary">{{ reg.talk.department }}</span></td>
+                        <td class="text-center">
+                            {% if reg.attended %}
+                            <span class="badge bg-success">Presente</span>
+                            {% else %}
+                            <span class="badge bg-danger">Ausente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="text-muted small">No se encontraron inscripciones para este DNI.</p>
+            {% endif %}
+        </div>
+
         {% if reclamo.nota_ampliacion %}
         <div class="card p-4 mb-4 border-warning">
             <h6 class="fw-bold mb-3 text-warning">Ampliación solicitada</h6>

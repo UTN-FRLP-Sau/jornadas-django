@@ -1675,7 +1675,14 @@ def _aplicar_resolucion(reclamo):
 @login_required
 def reclamo_detalle(request, pk):
     reclamo = get_object_or_404(Reclamo, pk=pk)
-    return render(request, 'charlas/reclamo_detalle.html', {'reclamo': reclamo})
+    inscripciones = Registration.objects.filter(
+        dni=reclamo.dni
+    ).select_related('talk').order_by('talk__date', 'talk__time')
+
+    return render(request, 'charlas/reclamo_detalle.html', {
+        'reclamo': reclamo,
+        'inscripciones': inscripciones,
+    })
 
 
 @login_required
