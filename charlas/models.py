@@ -92,6 +92,8 @@ class CertificateConfig(models.Model):
         'Requiere magistral', default=False)
     activa = models.BooleanField('Configuración activa', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    descarga_habilitada = models.BooleanField('Descarga habilitada', default=False)
+    mensaje_bloqueado = models.TextField('Mensaje cuando está bloqueado', default='La descarga de certificados aún no está habilitada. Te avisaremos por correo cuando esté disponible.')
 
     class Meta:
         verbose_name = 'Configuración de Certificados'
