@@ -1134,6 +1134,16 @@ def survey(request, dni, step=1):
     elif step == 2:
         template = 'charlas/survey_datos.html'
     elif step == 3:
+        context['matriz_items'] = [
+            ('matriz_variedad', 'Variedad de temáticas'),
+            ('matriz_disertantes', 'Nivel de exposición de los disertantes'),
+            ('matriz_horarios', 'Organización de horarios'),
+            ('matriz_informacion', 'Información brindada previamente'),
+            ('matriz_inscripcion', 'Sistema de inscripción'),
+            ('matriz_acreditacion', 'Sistema de acreditación de asistencia'),
+            ('matriz_espacios', 'Distribución de aulas y espacios'),
+            ('matriz_colaboradores', 'Acompañamiento de colaboradores'),
+        ]
         template = 'charlas/survey_general.html'
     elif step == 4:
         template = 'charlas/survey_empresas.html'

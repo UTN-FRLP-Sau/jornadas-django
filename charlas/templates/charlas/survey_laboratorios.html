@@ -6,7 +6,6 @@
         <div class="row justify-content-center">
             <div class="col-lg-7">
 
-                <!-- Progress -->
                 <div class="mb-4">
                     <div class="d-flex justify-content-between small text-muted mb-1">
                         <span>Paso {{ step }} de {{ total_steps }}</span>
@@ -22,41 +21,55 @@
                         {% csrf_token %}
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Puntuación general de la Feria de Laboratorios</label>
-                            <div class="d-flex gap-3">
-                                {% for i in "12345" %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="feria_laboratorios_puntuacion" value="{{ i }}" id="feria_lab_{{ i }}" required>
-                                    <label class="form-check-label" for="feria_lab_{{ i }}">{{ i }}</label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            <div class="d-flex justify-content-between small text-muted mt-1">
-                                <span>Muy malo</span><span>Excelente</span>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">¿Conocías los laboratorios antes del evento?</label>
+                            <label class="form-label fw-bold">¿Recorriste la feria de laboratorios?</label>
                             <div class="d-flex gap-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="feria_laboratorios_conocia" value="si" id="conocia_si" required>
-                                    <label class="form-check-label" for="conocia_si">Sí</label>
+                                    <input class="form-check-input" type="radio" name="asistio_feria_laboratorios" value="si" id="lab_si" required onchange="toggleLab(true)">
+                                    <label class="form-check-label" for="lab_si">Sí</label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="feria_laboratorios_conocia" value="no" id="conocia_no">
-                                    <label class="form-check-label" for="conocia_no">No</label>
+                                    <input class="form-check-input" type="radio" name="asistio_feria_laboratorios" value="no" id="lab_no" onchange="toggleLab(false)">
+                                    <label class="form-check-label" for="lab_no">No</label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Comentarios (opcional)</label>
-                            <textarea name="feria_laboratorios_comentario" class="form-control" rows="3" placeholder="¿Qué laboratorio te resultó más interesante?"></textarea>
+                        <div id="lab-detail" style="display:none;">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">¿Cómo evaluarías la Feria de Laboratorios?</label>
+                                <select name="evaluacion_feria_laboratorios" class="form-select">
+                                    <option value="">Seleccioná una opción</option>
+                                    <option value="Muy buena">Muy buena</option>
+                                    <option value="Buena">Buena</option>
+                                    <option value="Regular">Regular</option>
+                                    <option value="Mala">Mala</option>
+                                    <option value="Muy mala">Muy mala</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">¿La feria te permitió conocer proyectos, investigaciones o actividades de la Facultad que no conocías?</label>
+                                <select name="conocio_proyectos" class="form-select">
+                                    <option value="">Seleccioná una opción</option>
+                                    <option value="Sí">Sí</option>
+                                    <option value="No">No</option>
+                                    <option value="En parte">En parte</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">¿Qué laboratorio, proyecto o actividad te resultó más interesante? <span class="text-muted fw-normal">(opcional)</span></label>
+                                <textarea name="lab_interesante" class="form-control" rows="3" placeholder="Contanos..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">¿Qué mejorarías de la feria de laboratorios? <span class="text-muted fw-normal">(opcional)</span></label>
+                                <textarea name="mejoras_feria_laboratorios" class="form-control" rows="3" placeholder="Contanos..."></textarea>
+                            </div>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'survey_step' dni=cert.dni step=3 %}" class="btn btn-outline-secondary rounded-pill px-4">Anterior</a>
+                            <a href="{% url 'survey_step' dni=cert.dni step=4 %}" class="btn btn-outline-secondary rounded-pill px-4">Anterior</a>
                             <button type="submit" class="btn btn-primary-gradient rounded-pill px-4">Siguiente <i class="fa fa-arrow-right ms-2"></i></button>
                         </div>
                     </form>
@@ -66,5 +79,13 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleLab(show) {
+    document.getElementById('lab-detail').style.display = show ? 'block' : 'none';
+}
+</script>
 {% endblock %}
 {% endwith %}
