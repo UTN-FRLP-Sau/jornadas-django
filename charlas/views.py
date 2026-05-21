@@ -1028,44 +1028,79 @@ def survey(request, dni, step=1):
     if survey_obj.completada:
         return redirect('survey_done', dni=dni)
 
-    # Charlas asistidas (excluye magistrales del conteo pero las incluye para encuesta)
     regs = Registration.objects.filter(
         dni=dni, attended=True
     ).select_related('talk').order_by('talk__date', 'talk__time')
 
-    # 1 bienvenida + 2 generales + 3 empresas + 4 laboratorios + N charlas
-    total_steps = 4 + regs.count()
+    # paso 1: bienvenida, 2: datos generales, 3: evaluación general
+    # 4: feria empresas, 5: feria laboratorios, 6+N: charlas, último: final
+    total_steps = 5 + regs.count() + 1  # +1 para la página final
 
     if request.method == 'POST':
         if step == 2:
-            survey_obj.organizacion = request.POST.get('organizacion')
-            survey_obj.instalaciones = request.POST.get('instalaciones')
-            survey_obj.comunicacion = request.POST.get('comunicacion')
-            survey_obj.tematicas = request.POST.get('tematicas')
-            survey_obj.comentario_general = request.POST.get(
-                'comentario_general', '')
+            survey_obj.carrera = request.POST.get('carrera', '')
+            survey_obj.anio_cursada = request.POST.get('anio_cursada', '')
             survey_obj.save()
 
         elif step == 3:
-            survey_obj.feria_empresas_puntuacion = request.POST.get(
-                'feria_empresas_puntuacion')
-            survey_obj.feria_empresas_contacto = request.POST.get(
-                'feria_empresas_contacto') == 'si'
-            survey_obj.feria_empresas_comentario = request.POST.get(
-                'feria_empresas_comentario', '')
+            survey_obj.evaluacion_general = request.POST.get(
+                'evaluacion_general', '')
+            survey_obj.aporte_formacion = request.POST.get(
+                'aporte_formacion', '')
+            survey_obj.interes_tematicas = request.POST.get(
+                'interes_tematicas', '')
+            survey_obj.organizacion_general = request.POST.get(
+                'organizacion_general') or None
+            survey_obj.matriz_variedad = request.POST.get(
+                'matriz_variedad', '')
+            survey_obj.matriz_disertantes = request.POST.get(
+                'matriz_disertantes', '')
+            survey_obj.matriz_horarios = request.POST.get(
+                'matriz_horarios', '')
+            survey_obj.matriz_informacion = request.POST.get(
+                'matriz_informacion', '')
+            survey_obj.matriz_inscripcion = request.POST.get(
+                'matriz_inscripcion', '')
+            survey_obj.matriz_acreditacion = request.POST.get(
+                'matriz_acreditacion', '')
+            survey_obj.matriz_espacios = request.POST.get(
+                'matriz_espacios', '')
+            survey_obj.matriz_colaboradores = request.POST.get(
+                'matriz_colaboradores', '')
+            survey_obj.lo_mejor = request.POST.get('lo_mejor', '')
+            survey_obj.a_mejorar = request.POST.get('a_mejorar', '')
             survey_obj.save()
 
         elif step == 4:
-            survey_obj.feria_laboratorios_puntuacion = request.POST.get(
-                'feria_laboratorios_puntuacion')
-            survey_obj.feria_laboratorios_conocia = request.POST.get(
-                'feria_laboratorios_conocia') == 'si'
-            survey_obj.feria_laboratorios_comentario = request.POST.get(
-                'feria_laboratorios_comentario', '')
+            survey_obj.asistio_feria_empresas = request.POST.get(
+                'asistio_feria_empresas') == 'si'
+            if survey_obj.asistio_feria_empresas:
+                survey_obj.evaluacion_feria_empresas = request.POST.get(
+                    'evaluacion_feria_empresas', '')
+                survey_obj.utilidad_feria_empresas = request.POST.get(
+                    'utilidad_feria_empresas', '')
+                survey_obj.stands_interesantes = request.POST.get(
+                    'stands_interesantes', '')
+                survey_obj.mejoras_feria_empresas = request.POST.get(
+                    'mejoras_feria_empresas', '')
             survey_obj.save()
 
-        elif step >= 5:
-            talk_index = step - 5
+        elif step == 5:
+            survey_obj.asistio_feria_laboratorios = request.POST.get(
+                'asistio_feria_laboratorios') == 'si'
+            if survey_obj.asistio_feria_laboratorios:
+                survey_obj.evaluacion_feria_laboratorios = request.POST.get(
+                    'evaluacion_feria_laboratorios', '')
+                survey_obj.conocio_proyectos = request.POST.get(
+                    'conocio_proyectos', '')
+                survey_obj.lab_interesante = request.POST.get(
+                    'lab_interesante', '')
+                survey_obj.mejoras_feria_laboratorios = request.POST.get(
+                    'mejoras_feria_laboratorios', '')
+            survey_obj.save()
+
+        elif step >= 6 and step <= 5 + regs.count():
+            talk_index = step - 6
             if talk_index < regs.count():
                 reg = regs[talk_index]
                 TalkRating.objects.update_or_create(
@@ -1078,14 +1113,15 @@ def survey(request, dni, step=1):
                     }
                 )
 
-        if step >= total_steps:
+        elif step == total_steps:
+            survey_obj.proxima_edicion = request.POST.get(
+                'proxima_edicion', '')
             survey_obj.completada = True
             survey_obj.save()
             return redirect('survey_done', dni=dni)
 
         return redirect('survey_step', dni=dni, step=step + 1)
 
-    # GET — determinar qué mostrar
     context = {
         'cert': cert,
         'step': step,
@@ -1095,29 +1131,23 @@ def survey(request, dni, step=1):
 
     if step == 1:
         template = 'charlas/survey_welcome.html'
-
-
     elif step == 2:
-        context['fields'] = [
-            ('organizacion', 'Organización general del evento'),
-            ('instalaciones', 'Instalaciones y espacio físico'),
-            ('comunicacion', 'Comunicación previa al evento'),
-            ('tematicas', 'Temáticas de las charlas en general'),
-        ]
-        template = 'charlas/survey_general.html'
-
+        template = 'charlas/survey_datos.html'
     elif step == 3:
-        template = 'charlas/survey_empresas.html'
-
+        template = 'charlas/survey_general.html'
     elif step == 4:
+        template = 'charlas/survey_empresas.html'
+    elif step == 5:
         template = 'charlas/survey_laboratorios.html'
-
-    elif step >= 5:
-        talk_index = step - 5
-        if talk_index < regs.count():
-            context['reg'] = regs[talk_index]
-            context['talk_num'] = talk_index + 1
+    elif step >= 6 and step <= 5 + regs.count():
+        talk_index = step - 6
+        context['reg'] = regs[talk_index]
+        context['talk_num'] = talk_index + 1
         template = 'charlas/survey_talk.html'
+    elif step == total_steps:
+        template = 'charlas/survey_final.html'
+    else:
+        return redirect('survey', dni=dni)
 
     return render(request, template, context)
 
