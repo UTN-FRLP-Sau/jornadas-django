@@ -47,36 +47,38 @@ TEMPLATES_CERT = {
 
 
 def _procesar_fila(row, talk_destino):
-    # Detectar formato por las columnas disponibles
-    if 'Documento_Nro' in row:
-        # Formato nuevo (Criptografia.csv)
-        dni = row.get('Documento_Nro', '').strip()
-        apellido = row.get('Apellido', '').strip()
-    elif 'NOMBRE' in row:
-        # Formato viejo
-        raw = row['NOMBRE'].strip('"')
-        parts = raw.split('|')
-        if len(parts) < 5:
-            return None, apellido if 'apellido' in dir() else '-', 'Fila inválida', raw
-        apellido, _, dni, _, _ = parts[0], parts[1], parts[2], parts[3], parts[4]
-    else:
-        return None, '-', 'Fila inválida', str(row)
-
-    if not dni or not dni.isdigit():
-        return None, apellido, 'DNI inválido', str(row)
-
     try:
-        reg = Registration.objects.select_related('talk').get(
-            talk=talk_destino, dni=dni
-        )
-        if reg.attended:
-            return reg, f"{reg.apellido}, {reg.nombre}", 'Ya presente', ''
+        if 'Documento_Nro' in row:
+            dni = row.get('Documento_Nro', '').strip()
+            apellido = row.get('Apellido', '').strip()
+            if not dni or not dni.isdigit():
+                return None, apellido or '-', 'DNI inválido', str(row)
+        elif 'NOMBRE' in row:
+            raw = row['NOMBRE'].strip('"')
+            parts = raw.split('|')
+            if len(parts) < 5:
+                return None, '-', 'Fila inválida', raw
+            apellido, _, dni, _, token = parts[0], parts[1], parts[2], parts[3], parts[4]
+            if not dni or not dni.isdigit():
+                return None, apellido, 'DNI inválido', raw
         else:
-            reg.attended = True
-            reg.save()
-            return reg, f"{reg.apellido}, {reg.nombre}", 'Actualizado', ''
-    except Registration.DoesNotExist:
-        return None, apellido, 'No encontrado', str(row)
+            return None, '-', 'Fila inválida', str(row)
+
+        try:
+            reg = Registration.objects.select_related('talk').get(
+                talk=talk_destino, dni=dni
+            )
+            if reg.attended:
+                return reg, f"{reg.apellido}, {reg.nombre}", 'Ya presente', ''
+            else:
+                reg.attended = True
+                reg.save()
+                return reg, f"{reg.apellido}, {reg.nombre}", 'Actualizado', ''
+        except Registration.DoesNotExist:
+            return None, apellido, 'No encontrado', ''
+
+    except Exception as e:
+        return None, '-', f'Error: {str(e)[:50]}', str(row)[:100]
 
 
 def _generate_certificate_pdf(cert):
@@ -711,7 +713,22 @@ def import_attendance(request):
         if form.is_valid():
             csv_file = request.FILES['csv_file']
             talk_destino = form.cleaned_data['talk']
-            decoded = csv_file.read().decode('utf-8')
+            
+            try:
+                decoded = csv_file.read().decode('utf-8')
+            except UnicodeDecodeError:
+                csv_file.seek(0)
+                decoded = csv_file.read().decode('latin-1')
+        
+            # Filtrar líneas corruptas
+            lines = decoded.splitlines()
+            header = lines[0] if lines else ''
+            filtered = [header] + [
+                l for l in lines[1:]
+                if l.count(';') >= 2 and len(l) < 500
+            ]
+            decoded = '\n'.join(filtered)
+        
             reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
             seen_dnis = set()
             results = []
