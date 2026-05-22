@@ -33,54 +33,51 @@ from .models import Registration, Talk, CertificateConfig, EmissionJob, Certific
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
-from pypdf import PdfReader, PdfWriter
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4, landscape
-from reportlab.lib import colors
+
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
 
+
 def _generate_certificate_pdf(cert):
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib import colors
+    from pypdf import PdfReader, PdfWriter
+
     template_path = settings.BASE_DIR / 'charlas' / 'static' / \
-        'charlas' / 'img' / 'template_certificado.pdf'
+        'charlas' / 'img' / 'JFP2026_CERTIFICADO.pdf'
     output_path = settings.MEDIA_ROOT / \
         'certificados' / f'cert_{cert.codigo}.pdf'
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Crear overlay con el texto
+    W, H = landscape(A4)
+
     overlay_buffer = BytesIO()
     c = canvas.Canvas(overlay_buffer, pagesize=landscape(A4))
-    width, height = landscape(A4)  # 842 x 595 pts
 
-    # Apellido — mayúsculas, centrado
-    c.setFont('Helvetica-Bold', 28)
-    c.setFillColor(colors.HexColor('#0F172B'))
-    apellido = cert.apellido.upper()
-    c.drawCentredString(width / 2, height / 2 + 20, apellido)
+    # Nombre — blanco, centrado
+    c.setFillColor(colors.white)
+    c.setFont('Helvetica-Bold', 36)
+    nombre_completo = f"{cert.apellido.upper()}, {cert.nombre.title()}"
+    c.drawCentredString(W / 2, H / 2 + 10, nombre_completo)
 
-    # Nombre — title case
-    c.setFont('Helvetica', 24)
-    nombre = cert.nombre.title()
-    c.drawCentredString(width / 2, height / 2 - 20, nombre)
+    # DNI
+    c.setFont('Helvetica', 16)
+    c.setFillColor(colors.HexColor('#b0c4de'))
+    c.drawCentredString(W / 2, H / 2 - 25, f"DNI: {cert.dni}")
 
-    # DNI — más pequeño
-    c.setFont('Helvetica', 14)
-    c.setFillColor(colors.HexColor('#666565'))
-    c.drawCentredString(width / 2, height / 2 - 55, f'DNI: {cert.dni}')
-
-    # Frase de validación — abajo, pequeña
+    # Código de validación — negro
     c.setFont('Helvetica', 9)
-    c.setFillColor(colors.HexColor('#999999'))
-    validate_url = f'{settings.SITE_URL}/certificado/validar/'
+    c.setFillColor(colors.black)
+    validate_url = f"{settings.SITE_URL}/certificado/validar/"
     c.drawCentredString(
-        width / 2, 60, f'Validá este certificado ingresando el código {cert.codigo} en: {validate_url}')
+        W / 2, 28, f"Validá este certificado ingresando el código {cert.codigo} en: {validate_url}")
 
     c.save()
     overlay_buffer.seek(0)
 
-    # Superponer sobre el template
     template_pdf = PdfReader(str(template_path))
     overlay_pdf = PdfReader(overlay_buffer)
 
