@@ -39,6 +39,12 @@ from openpyxl.styles import Font, PatternFill
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
 
+TEMPLATES_CERT = {
+    'diploma': 'JFP2026_DIPLOMA.pdf',
+    'constancia_parcial': 'JFP2026_CONSTANCIA_PARCIAL.pdf',
+    'constancia_justificacion': 'JFP2026_CONSTANCIA_JUSTIFICACION.pdf',
+}
+
 
 def _generate_certificate_pdf(cert):
     from reportlab.pdfgen import canvas
@@ -46,10 +52,9 @@ def _generate_certificate_pdf(cert):
     from reportlab.lib import colors
     from pypdf import PdfReader, PdfWriter
 
-    template_path = settings.BASE_DIR / 'charlas' / 'static' / \
-        'charlas' / 'img' / 'JFP2026_CERTIFICADO.pdf'
-    output_path = settings.MEDIA_ROOT / \
-        'certificados' / f'cert_{cert.codigo}.pdf'
+    template_file = TEMPLATES_CERT.get(cert.tipo, 'JFP2026_DIPLOMA.pdf')
+    template_path = settings.BASE_DIR / 'charlas' / 'static' / 'charlas' / 'img' / template_file
+    output_path = settings.MEDIA_ROOT / 'certificados' / f'cert_{cert.codigo}.pdf'
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     W, H = landscape(A4)
@@ -57,7 +62,7 @@ def _generate_certificate_pdf(cert):
     overlay_buffer = BytesIO()
     c = canvas.Canvas(overlay_buffer, pagesize=landscape(A4))
 
-    # Nombre — blanco, centrado
+    # Nombre
     c.setFillColor(colors.white)
     c.setFont('Helvetica-Bold', 36)
     nombre_completo = f"{cert.apellido.upper()}, {cert.nombre.title()}"
@@ -68,12 +73,11 @@ def _generate_certificate_pdf(cert):
     c.setFillColor(colors.HexColor('#b0c4de'))
     c.drawCentredString(W / 2, H / 2 - 25, f"DNI: {cert.dni}")
 
-    # Código de validación — negro
+    # Código de validación
     c.setFont('Helvetica', 9)
     c.setFillColor(colors.black)
     validate_url = f"{settings.SITE_URL}/certificado/validar/"
-    c.drawCentredString(
-        W / 2, 28, f"Validá este certificado ingresando el código {cert.codigo} en: {validate_url}")
+    c.drawCentredString(W / 2, 28, f"Validá este certificado ingresando el código {cert.codigo} en: {validate_url}")
 
     c.save()
     overlay_buffer.seek(0)
@@ -1654,19 +1658,26 @@ def _aplicar_resolucion(reclamo):
                 reg.save()
     elif reclamo.resolucion == 'certificado_directo':
         if not Certificate.objects.filter(dni=reclamo.dni).exists():
+            # Determinar tipo según el motivo
+            if reclamo.motivo in ('trabajo', 'no_cursa'):
+                tipo_cert = 'constancia_justificacion'
+            else:
+                tipo_cert = 'constancia_parcial'
+    
             cert = Certificate.objects.create(
                 nombre=reclamo.nombre,
                 apellido=reclamo.apellido,
                 dni=reclamo.dni,
                 legajo=reclamo.legajo,
                 correo=reclamo.correo,
+                tipo=tipo_cert,
             )
             try:
                 archivo = _generate_certificate_pdf(cert)
                 cert.archivo = archivo
                 cert.save()
-            except:
-                pass
+            except Exception as e:
+                print(f'[CERT] Error generando constancia: {e}')
 
 
 @login_required

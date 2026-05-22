@@ -106,6 +106,13 @@ class CertificateConfig(models.Model):
 
 
 class Certificate(models.Model):
+    
+    TIPO_CERT_CHOICES = [
+        ('diploma', 'Diploma de asistencia'),
+        ('constancia_parcial', 'Constancia de participación parcial'),
+        ('constancia_justificacion', 'Constancia de justificación'),
+    ]
+
     nombre = models.CharField('Nombre', max_length=100)
     apellido = models.CharField('Apellido', max_length=100)
     dni = models.CharField('DNI', max_length=20)
@@ -118,6 +125,8 @@ class Certificate(models.Model):
     emitido_at = models.DateTimeField('Emitido el', auto_now_add=True)
     config = models.ForeignKey(
         CertificateConfig, on_delete=models.SET_NULL, null=True)
+    tipo = models.CharField('Tipo', max_length=30,
+                            choices=TIPO_CERT_CHOICES, default='diploma')
 
     class Meta:
         verbose_name = 'Certificado'
