@@ -39,6 +39,45 @@ from openpyxl.styles import Font, PatternFill
 # Helpers
 # ────────────────────────────────────────────────────────────────────────────────
 
+TEMPLATES_CERT = {
+    'diploma': 'JFP2026_DIPLOMA.pdf',
+    'constancia_parcial': 'JFP2026_CONSTANCIA_PARCIAL.pdf',
+    'constancia_justificacion': 'JFP2026_CONSTANCIA_JUSTIFICACION.pdf',
+}
+
+
+def _procesar_fila(row, talk_destino):
+    # Detectar formato por las columnas disponibles
+    if 'Documento_Nro' in row:
+        # Formato nuevo (Criptografia.csv)
+        dni = row.get('Documento_Nro', '').strip()
+        apellido = row.get('Apellido', '').strip()
+    elif 'NOMBRE' in row:
+        # Formato viejo
+        raw = row['NOMBRE'].strip('"')
+        parts = raw.split('|')
+        if len(parts) < 5:
+            return None, apellido if 'apellido' in dir() else '-', 'Fila inválida', raw
+        apellido, _, dni, _, _ = parts[0], parts[1], parts[2], parts[3], parts[4]
+    else:
+        return None, '-', 'Fila inválida', str(row)
+
+    if not dni or not dni.isdigit():
+        return None, apellido, 'DNI inválido', str(row)
+
+    try:
+        reg = Registration.objects.select_related('talk').get(
+            talk=talk_destino, dni=dni
+        )
+        if reg.attended:
+            return reg, f"{reg.apellido}, {reg.nombre}", 'Ya presente', ''
+        else:
+            reg.attended = True
+            reg.save()
+            return reg, f"{reg.apellido}, {reg.nombre}", 'Actualizado', ''
+    except Registration.DoesNotExist:
+        return None, apellido, 'No encontrado', str(row)
+
 
 def _generate_certificate_pdf(cert):
     from reportlab.pdfgen import canvas
@@ -46,10 +85,9 @@ def _generate_certificate_pdf(cert):
     from reportlab.lib import colors
     from pypdf import PdfReader, PdfWriter
 
-    template_path = settings.BASE_DIR / 'charlas' / 'static' / \
-        'charlas' / 'img' / 'JFP2026_CERTIFICADO.pdf'
-    output_path = settings.MEDIA_ROOT / \
-        'certificados' / f'cert_{cert.codigo}.pdf'
+    template_file = TEMPLATES_CERT.get(cert.tipo, 'JFP2026_DIPLOMA.pdf')
+    template_path = settings.BASE_DIR / 'charlas' / 'static' / 'charlas' / 'img' / template_file
+    output_path = settings.MEDIA_ROOT / 'certificados' / f'cert_{cert.codigo}.pdf'
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     W, H = landscape(A4)
@@ -57,7 +95,7 @@ def _generate_certificate_pdf(cert):
     overlay_buffer = BytesIO()
     c = canvas.Canvas(overlay_buffer, pagesize=landscape(A4))
 
-    # Nombre — blanco, centrado
+    # Nombre
     c.setFillColor(colors.white)
     c.setFont('Helvetica-Bold', 36)
     nombre_completo = f"{cert.apellido.upper()}, {cert.nombre.title()}"
@@ -68,12 +106,11 @@ def _generate_certificate_pdf(cert):
     c.setFillColor(colors.HexColor('#b0c4de'))
     c.drawCentredString(W / 2, H / 2 - 25, f"DNI: {cert.dni}")
 
-    # Código de validación — negro
+    # Código de validación
     c.setFont('Helvetica', 9)
     c.setFillColor(colors.black)
     validate_url = f"{settings.SITE_URL}/certificado/validar/"
-    c.drawCentredString(
-        W / 2, 28, f"Validá este certificado ingresando el código {cert.codigo} en: {validate_url}")
+    c.drawCentredString(W / 2, 28, f"Validá este certificado ingresando el código {cert.codigo} en: {validate_url}")
 
     c.save()
     overlay_buffer.seek(0)
@@ -676,55 +713,30 @@ def import_attendance(request):
             talk_destino = form.cleaned_data['talk']
             decoded = csv_file.read().decode('utf-8')
             reader = csv.DictReader(io.StringIO(decoded), delimiter=';')
-
+            seen_dnis = set()
             results = []
+
             for row in reader:
-                raw = row['NOMBRE'].strip('"')
-                parts = raw.split('|')
-                if len(parts) < 5:
-                    results.append({
-                        'token': raw,
-                        'talk_id': None,
-                        'nombre': '-',
-                        'charla': '-',
-                        'estado': 'Fila inválida',
-                        'raw': raw
-                    })
+                reg, nombre, estado, raw = _procesar_fila(row, talk_destino)
+
+                # Extraer DNI para deduplicar
+                dni = row.get('Documento_Nro', '').strip()
+                if not dni:
+                    raw_nombre = row.get('NOMBRE', '')
+                    parts = raw_nombre.split('|')
+                    dni = parts[2] if len(parts) >= 5 else ''
+
+                if dni in seen_dnis:
                     continue
+                seen_dnis.add(dni)
 
-                apellido, legajo, dni, talk_id, token = parts[0], parts[1], parts[2], parts[3], parts[4]
-
-                try:
-                    reg = Registration.objects.select_related('talk').get(
-                        talk=talk_destino, dni=dni
-                    )
-                    if reg.attended:
-                        estado = 'Ya presente'
-                    else:
-                        reg.attended = True
-                        reg.save()
-                        estado = 'Actualizado'
-                    results.append({
-                        'token': token,
-                        'talk_id': talk_destino.id,
-                        'nombre': f"{reg.apellido}, {reg.nombre}",
-                        'charla': reg.talk.title,
-                        'estado': estado,
-                        'raw': raw,
-                    })
-                except Registration.DoesNotExist:
-                    results.append({
-                        'token': token,
-                        'talk_id': talk_destino.id,
-                        'nombre': apellido,
-                        'charla': '-',
-                        'estado': 'No encontrado',
-                        'raw': raw,
-                    })
-
-            talk_ids = set(r['talk_id'] for r in results if r.get('talk_id'))
-            talk_ref = Talk.objects.filter(
-                pk__in=talk_ids).first() if talk_ids else None
+                results.append({
+                    'nombre': nombre,
+                    'charla': reg.talk.title if reg else '-',
+                    'talk_id': str(talk_destino.id),
+                    'estado': estado,
+                    'raw': raw,
+                })
 
             request.session['import_results'] = results
 
@@ -1654,19 +1666,26 @@ def _aplicar_resolucion(reclamo):
                 reg.save()
     elif reclamo.resolucion == 'certificado_directo':
         if not Certificate.objects.filter(dni=reclamo.dni).exists():
+            # Determinar tipo según el motivo
+            if reclamo.motivo in ('trabajo', 'no_cursa'):
+                tipo_cert = 'constancia_justificacion'
+            else:
+                tipo_cert = 'constancia_parcial'
+
             cert = Certificate.objects.create(
                 nombre=reclamo.nombre,
                 apellido=reclamo.apellido,
                 dni=reclamo.dni,
                 legajo=reclamo.legajo,
                 correo=reclamo.correo,
+                tipo=tipo_cert,
             )
             try:
                 archivo = _generate_certificate_pdf(cert)
                 cert.archivo = archivo
                 cert.save()
-            except:
-                pass
+            except Exception as e:
+                print(f'[CERT] Error generando constancia: {e}')
 
 
 @login_required
