@@ -5,3 +5,5 @@ db.sqlite3
 *.pyc
 /media
 *.log
+disertantes.txt
+generate_disertantes.py
