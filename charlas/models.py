@@ -66,6 +66,8 @@ class Registration(models.Model):
     attended = models.BooleanField('Asistió', default=False)
     token = models.CharField('Token', max_length=36, unique=True)
     registered_at = models.DateTimeField(auto_now_add=True)
+    attended_reclamo = models.BooleanField(
+        'Presente por reclamo', default=False)
 
     class Meta:
         verbose_name = 'Inscripción'
