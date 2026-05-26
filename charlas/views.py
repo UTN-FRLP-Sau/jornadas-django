@@ -1838,6 +1838,35 @@ def _aplicar_resolucion(reclamo):
                 cert.save()
             except Exception as e:
                 print(f'[CERT] Error generando constancia: {e}')
+    elif reclamo.resolucion in ('charla', 'dia'):
+        if reclamo.talk:
+            reg = Registration.objects.filter(
+                dni=reclamo.dni, talk=reclamo.talk
+            ).first()
+            if reg:
+                reg.attended = True
+                reg.attended_reclamo = True
+                reg.save()
+    
+        # Re-evaluar y emitir si cumple
+        config = CertificateConfig.objects.filter(activa=True).first()
+        if config and _evaluar_alumno(reclamo.dni, config):
+            if not Certificate.objects.filter(dni=reclamo.dni).exists():
+                cert = Certificate.objects.create(
+                    nombre=reclamo.nombre,
+                    apellido=reclamo.apellido,
+                    dni=reclamo.dni,
+                    legajo=reclamo.legajo,
+                    correo=reclamo.correo,
+                    tipo='diploma',
+                )
+                try:
+                    archivo = _generate_certificate_pdf(cert)
+                    cert.archivo = archivo
+                    cert.save()
+                    _send_certificate_email(cert)
+                except Exception as e:
+                    print(f'[CERT] Error: {e}')
 
 
 @login_required

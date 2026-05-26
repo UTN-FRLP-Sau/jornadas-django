@@ -47,6 +47,9 @@
                                     <input type="checkbox" class="attendance-toggle" data-id="{{ reg.id }}" {% if reg.attended %}checked{% endif %}>
                                     <span class="slider round"></span>
                                 </label>
+                                {% if reg.attended_reclamo %}
+                                <br><small class="text-warning"><i class="fa fa-flag me-1"></i>Por reclamo</small>
+                                {% endif %}
                             </td>
                             <td class="text-end">
                                 {% if request.user.is_authenticated %}

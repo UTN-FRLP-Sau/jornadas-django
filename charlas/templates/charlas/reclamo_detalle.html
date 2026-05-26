@@ -62,7 +62,9 @@
                         <td>{{ reg.talk.date }}</td>
                         <td><span class="badge bg-secondary">{{ reg.talk.department }}</span></td>
                         <td class="text-center">
-                            {% if reg.attended %}
+                            {% if reg.attended and reg.attended_reclamo %}
+                            <span class="badge bg-warning text-dark">Presente por reclamo</span>
+                            {% elif reg.attended %}
                             <span class="badge bg-success">Presente</span>
                             {% else %}
                             <span class="badge bg-danger">Ausente</span>
