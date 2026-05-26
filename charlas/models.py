@@ -93,6 +93,8 @@ class CertificateConfig(models.Model):
     activa = models.BooleanField('Configuración activa', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     descarga_habilitada = models.BooleanField('Descarga habilitada', default=False)
+    encuesta_obligatoria = models.BooleanField(
+        'Encuesta obligatoria para descargar', default=True)
     mensaje_bloqueado = models.TextField('Mensaje cuando está bloqueado', default='La descarga de certificados aún no está habilitada. Te avisaremos por correo cuando esté disponible.')
     dias_reclamo = models.PositiveIntegerField('Días para reclamar', default=7)
     dias_respuesta = models.PositiveIntegerField('Días para responder', default=20)

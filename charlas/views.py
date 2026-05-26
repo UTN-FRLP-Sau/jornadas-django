@@ -856,13 +856,16 @@ def certificate_config(request):
     class ConfigForm(django_forms.ModelForm):
         class Meta:
             model = CertificateConfig
-            fields = ['modalidad', 'minimo', 'requiere_magistral', 'descarga_habilitada', 'mensaje_bloqueado']
+            fields = ['modalidad', 'minimo', 'requiere_magistral', 'descarga_habilitada', 'mensaje_bloqueado', 'dias_reclamo', 'dias_respuesta', 'encuesta_obligatoria']
             widgets = {
                 'modalidad': django_forms.Select(attrs={'class': 'form-select'}),
                 'minimo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
                 'requiere_magistral': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
                 'descarga_habilitada': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
                 'mensaje_bloqueado': django_forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                'encuesta_obligatoria': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+                'dias_reclamo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+                'dias_respuesta': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             }
             labels = {
                 'modalidad': 'Modalidad',
@@ -870,6 +873,9 @@ def certificate_config(request):
                 'requiere_magistral': 'Requiere al menos una magistral',
                 'descarga_habilitada': 'Habilitar descarga de certificados',
                 'mensaje_bloqueado': 'Mensaje cuando la descarga está bloqueada',
+                'encuesta_obligatoria': 'Encuesta obligatoria para descargar el certificado',
+                'dias_reclamo': 'Días para reclamar',
+                'dias_respuesta': 'Días para responder reclamos',
             }
 
     form = ConfigForm(instance=config)
@@ -1000,7 +1006,7 @@ def certificate_validate(request):
 
 def certificate_download(request):
     config = CertificateConfig.objects.filter(activa=True).first()
-     # Verificar si la descarga está habilitada
+
     if not config or not config.descarga_habilitada:
         mensaje = config.mensaje_bloqueado if config else 'La descarga de certificados no está disponible.'
         return render(request, 'charlas/certificate_blocked.html', {'mensaje': mensaje})
@@ -1009,6 +1015,7 @@ def certificate_download(request):
     regs = []
     cumple = False
     error = None
+    encuesta_pendiente = False
 
     if request.method == 'POST':
         dni = request.POST.get('dni', '').strip()
@@ -1019,7 +1026,15 @@ def certificate_download(request):
             cert = Certificate.objects.filter(dni=dni).first()
             if cert:
                 cumple = True
-                # Generar PDF si no existe
+                survey_obj = Survey.objects.filter(certificate=cert).first()
+                encuesta_completada = survey_obj and survey_obj.completada
+
+                if not encuesta_completada:
+                    if config.encuesta_obligatoria:
+                        return redirect('survey', dni=dni)
+                    else:
+                        encuesta_pendiente = True
+
                 if not cert.archivo:
                     try:
                         archivo = _generate_certificate_pdf(cert)
@@ -1027,10 +1042,7 @@ def certificate_download(request):
                         cert.save()
                     except Exception as e:
                         print(f'[CERT PDF] Error: {e}')
-                # Si no completó la encuesta, redirigir
-                survey_obj = Survey.objects.filter(certificate=cert).first()
-                if not survey_obj or not survey_obj.completada:
-                    return redirect('survey', dni=dni)
+
                 regs = Registration.objects.filter(
                     dni=dni, attended=True
                 ).select_related('talk').order_by('talk__date', 'talk__time')
@@ -1046,6 +1058,7 @@ def certificate_download(request):
         'cumple': cumple,
         'error': error,
         'submitted': request.method == 'POST',
+        'encuesta_pendiente': encuesta_pendiente,
     })
 
 

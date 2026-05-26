@@ -31,6 +31,16 @@
 
                 {% if submitted %}
                     {% if cumple %}
+
+                    {% if encuesta_pendiente %}
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+                        <span><i class="fa fa-clipboard-list me-2"></i>¿Querés compartir tu opinión sobre las Jornadas?</span>
+                        <a href="{% url 'survey' dni=cert.dni %}" class="btn btn-outline-primary btn-sm rounded-pill ms-3">
+                            Completar encuesta
+                        </a>
+                    </div>
+                    {% endif %}
+
                     <div class="card p-4 border-0 shadow-lg mb-4">
                         <div class="text-center mb-4">
                             <i class="fa fa-check-circle text-success mb-3" style="font-size:60px;"></i>
@@ -64,6 +74,7 @@
                         </div>
                         {% endif %}
                     </div>
+
                     {% else %}
                     <div class="card p-4 border-0 shadow-lg">
                         <div class="text-center mb-4">
@@ -95,7 +106,6 @@
                             </tbody>
                         </table>
                         {% endif %}
-                        <!-- Botón de reclamo -->
                         <div class="text-center mt-4">
                             <p class="text-muted small mb-2">¿Creés que hay un error? Podés presentar un reclamo.</p>
                             <a href="{% url 'reclamo_nuevo' %}" class="btn btn-outline-primary rounded-pill px-4">
