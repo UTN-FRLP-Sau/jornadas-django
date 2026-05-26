@@ -283,6 +283,7 @@ class Reclamo(models.Model):
     carrera = models.CharField(
         'Carrera', max_length=50, choices=CARRERA_CHOICES)
     correo = models.EmailField('Correo')
+    
 
     # Reclamo
     tipo = models.CharField('Tipo', max_length=20, choices=TIPO_CHOICES)
@@ -293,6 +294,10 @@ class Reclamo(models.Model):
     dia = models.CharField('Día', max_length=50, blank=True, default='')
     archivo = models.FileField(
         'Adjunto', upload_to='reclamos/', blank=True, null=True)
+    dias_perdonados_list = models.JSONField(
+        'Días perdonados', default=list, blank=True)
+    charlas_perdonadas_count = models.PositiveSmallIntegerField(
+        'Charlas perdonadas', default=0)
 
     # Estado
     estado = models.CharField('Estado', max_length=20,

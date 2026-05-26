@@ -343,9 +343,8 @@ def _send_certificate_email(cert):
 
 
 def _evaluar_alumno(dni, config):
-    """
-    Devuelve True si el alumno cumple las condiciones de la config.
-    """
+    from charlas.models import Reclamo
+
     regs = Registration.objects.filter(
         dni=dni, attended=True).select_related('talk')
 
@@ -353,22 +352,36 @@ def _evaluar_alumno(dni, config):
         return False
 
     if config.requiere_magistral:
-        tiene_magistral = regs.filter(talk__department='Magistral').exists()
-        if not tiene_magistral:
+        if not regs.filter(talk__department='Magistral').exists():
             return False
 
-    # Excluir magistrales del conteo
     regs_no_magistral = regs.exclude(talk__department='Magistral')
 
+    # Obtener perdones aprobados
+    reclamos_aprobados = Reclamo.objects.filter(dni=dni, estado='aprobado')
+    dias_perdonados = []
+    charlas_perdonadas = 0
+    for r in reclamos_aprobados:
+        dias_perdonados.extend(r.dias_perdonados_list)
+        charlas_perdonadas += r.charlas_perdonadas_count
+
     if config.modalidad == 'total':
-        return regs_no_magistral.count() >= config.minimo
-    
+        total = regs_no_magistral.count() + charlas_perdonadas
+        return total >= config.minimo
+
     elif config.modalidad == 'por_dia':
+        from charlas.constants import FECHA_MAP
         dias = {}
         for reg in regs_no_magistral:
             fecha = reg.talk.date
             dias.setdefault(fecha, 0)
             dias[fecha] += 1
+
+        # Agregar días perdonados con mínimo requerido
+        for dia in dias_perdonados:
+            if dia not in dias:
+                dias[dia] = config.minimo  # se considera cumplido
+
         return all(count >= config.minimo for count in dias.values()) and len(dias) > 0
 
     return False
@@ -1847,7 +1860,7 @@ def _aplicar_resolucion(reclamo):
                 reg.attended = True
                 reg.attended_reclamo = True
                 reg.save()
-    
+
         # Re-evaluar y emitir si cumple
         config = CertificateConfig.objects.filter(activa=True).first()
         if config and _evaluar_alumno(reclamo.dni, config):
@@ -1893,9 +1906,15 @@ def reclamo_resolver(request, pk):
         reclamo.resolucion = request.POST.get('resolucion', '')
         reclamo.nota_admin = request.POST.get('nota_admin', '')
         reclamo.fecha_respuesta = timezone.now()
+        # Guardar perdones
+        if reclamo.resolucion == 'dia' and reclamo.dia:
+            reclamo.dias_perdonados_list = [reclamo.dia]
+        elif reclamo.resolucion == 'charla':
+            reclamo.charlas_perdonadas_count = 1
         reclamo.save()
         _aplicar_resolucion(reclamo)
         _send_reclamo_resolucion(reclamo)
+        
 
     elif accion == 'rechazar':
         reclamo.estado = 'rechazado'
