@@ -7,3 +7,4 @@ db.sqlite3
 *.log
 disertantes.txt
 generate_disertantes.py
+charlas/static/charlas/img/JFP2026_DIPLOMA.pdf
