@@ -8,10 +8,17 @@
                 <div class="card p-5 shadow-lg border-0 rounded-3">
                     <i class="fa fa-clipboard-list text-primary mb-4" style="font-size:60px;"></i>
                     <h2 class="mb-3">¡Hola, {{ cert.nombre }}!</h2>
-                    <p class="text-muted fs-5 mb-4">
-                        Para descargar tu certificado, te pedimos que completes una breve encuesta sobre las Jornadas de Formación Profesional 2026.
-                        Tu opinión nos ayuda a mejorar para la próxima edición.
-                    </p>
+                        {% if encuesta_obligatoria %}
+                        <p class="text-muted fs-5 mb-4">
+                            Para descargar tu certificado, te pedimos que completes una breve encuesta sobre las Jornadas de Formación Profesional 2026.
+                            Tu opinión nos ayuda a mejorar para la próxima edición.
+                        </p>
+                        {% else %}
+                        <p class="text-muted fs-5 mb-4">
+                            ¡Te agradecemos por querer responder esta encuesta!
+                            Tu opinión es muy valiosa para mejorar futuras ediciones de las Jornadas de Formación Profesional.
+                        </p>
+                        {% endif %}
                     <p class="text-muted small mb-4">La encuesta tarda aproximadamente 3 minutos.</p>
                     <a href="{% url 'survey_step' dni=cert.dni step=2 %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">
                         Comenzar encuesta <i class="fa fa-arrow-right ms-2"></i>

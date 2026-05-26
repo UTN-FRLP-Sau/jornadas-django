@@ -81,11 +81,124 @@ def _procesar_fila(row, talk_destino):
         return None, '-', f'Error: {str(e)[:50]}', str(row)[:100]
 
 
+def _generate_constancia_pdf(cert):
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.utils import ImageReader
+    import qrcode
+
+    output_path = settings.MEDIA_ROOT / \
+        'certificados' / f'cert_{cert.codigo}.pdf'
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    W, H = A4  # vertical
+    c = canvas.Canvas(str(output_path), pagesize=A4)
+
+    # Fondo blanco
+    c.setFillColor(colors.white)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # Logo
+    logo_path = settings.BASE_DIR / 'charlas' / \
+        'static' / 'charlas' / 'img' / 'logo_dark.png'
+    try:
+        logo = ImageReader(str(logo_path))
+        c.drawImage(logo, W/2 - 80, H - 120, width=160, height=60, mask='auto')
+    except:
+        pass
+
+    # Línea separadora
+    c.setStrokeColor(colors.HexColor('#2b4efe'))
+    c.setLineWidth(2)
+    c.line(60, H - 135, W - 60, H - 135)
+
+    # Título
+    c.setFillColor(colors.HexColor('#2b4efe'))
+    c.setFont('Helvetica-Bold', 14)
+    c.drawCentredString(W / 2, H - 165, 'UNIVERSIDAD TECNOLÓGICA NACIONAL')
+    c.setFont('Helvetica', 11)
+    c.drawCentredString(W / 2, H - 182, 'Facultad Regional La Plata')
+
+    # Texto del certificado
+    if cert.tipo == 'constancia_parcial':
+        texto = (
+            f"La Universidad Tecnológica Nacional Facultad Regional La Plata certifica que "
+            f"{cert.nombre.title()} {cert.apellido.upper()} participó en actividades de las "
+            f"Jornadas de Formación Profesional - Cuarta Edición, realizadas los días 19, 20 y 21 "
+            f"de Mayo de 2026, en el marco de una situación debidamente justificada ante la institución."
+        )
+    else:  # constancia_justificacion
+        texto = (
+            f"La Universidad Tecnológica Nacional Facultad Regional La Plata certifica que "
+            f"{cert.nombre.title()} {cert.apellido.upper()} presentó justificación de su ausencia "
+            f"a las Jornadas de Formación Profesional - Cuarta Edición, realizadas los días 19, 20 "
+            f"y 21 de Mayo de 2026, la cual fue evaluada y aprobada por las autoridades competentes."
+        )
+
+    # Nombre del alumno destacado
+    c.setFillColor(colors.HexColor('#0F172B'))
+    c.setFont('Helvetica-Bold', 22)
+    c.drawCentredString(W / 2, H / 2 + 60,
+                        f"{cert.apellido.upper()}, {cert.nombre.title()}")
+
+    c.setFont('Helvetica', 11)
+    c.setFillColor(colors.HexColor('#666565'))
+    c.drawCentredString(W / 2, H / 2 + 38,
+                        f"DNI: {cert.dni}   |   Legajo: {cert.legajo}")
+
+    # Texto justificado
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import Paragraph
+    from reportlab.lib.enums import TA_CENTER
+
+    style = ParagraphStyle(
+        'cert',
+        fontName='Helvetica',
+        fontSize=11,
+        leading=18,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#1a1a2e'),
+    )
+    p = Paragraph(texto, style)
+    p.wrapOn(c, W - 120, 200)
+    p.drawOn(c, 60, H / 2 - 60)
+
+    # Línea separadora inferior
+    c.setStrokeColor(colors.HexColor('#2b4efe'))
+    c.setLineWidth(1)
+    c.line(60, 160, W - 60, 160)
+
+    # QR
+    validate_url = f"{settings.SITE_URL}/certificado/validar/"
+    qr = qrcode.QRCode(version=1, box_size=4, border=2)
+    qr.add_data(f"{validate_url}?dni={cert.dni}&codigo={cert.codigo}")
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color='black', back_color='white')
+    qr_buffer = BytesIO()
+    qr_img.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+    c.drawImage(ImageReader(qr_buffer), W/2 - 40, 65, width=80, height=80)
+
+    # Texto de validación
+    c.setFont('Helvetica', 8)
+    c.setFillColor(colors.HexColor('#666565'))
+    c.drawCentredString(
+        W / 2, 52, f"Validá este certificado en: {validate_url}")
+    c.drawCentredString(W / 2, 40, f"Código: {cert.codigo}")
+
+    c.save()
+    return f'certificados/cert_{cert.codigo}.pdf'
+
+
 def _generate_certificate_pdf(cert):
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from pypdf import PdfReader, PdfWriter
+    
+    if cert.tipo in ('constancia_parcial', 'constancia_justificacion'):
+        return _generate_constancia_pdf(cert)
 
     template_file = TEMPLATES_CERT.get(cert.tipo, 'JFP2026_DIPLOMA.pdf')
     template_path = settings.BASE_DIR / 'charlas' / 'static' / 'charlas' / 'img' / template_file
@@ -1035,13 +1148,20 @@ def certificate_download(request):
                     else:
                         encuesta_pendiente = True
 
-                if not cert.archivo:
+                if not cert.archivo or not (settings.MEDIA_ROOT / cert.archivo.name).exists():
+                    print(
+                        f'[CERT] Generando PDF para {cert.dni}, tipo: {cert.tipo}')
                     try:
                         archivo = _generate_certificate_pdf(cert)
                         cert.archivo = archivo
                         cert.save()
+                        print(f'[CERT] PDF generado: {archivo}')
                     except Exception as e:
                         print(f'[CERT PDF] Error: {e}')
+                else:
+                    print(f'[CERT] Ya tiene archivo: {cert.archivo}')
+                    
+                cert.refresh_from_db()
 
                 regs = Registration.objects.filter(
                     dni=dni, attended=True
@@ -1065,6 +1185,7 @@ def certificate_download(request):
 def survey(request, dni, step=1):
     cert = get_object_or_404(Certificate, dni=dni)
     survey_obj, _ = Survey.objects.get_or_create(certificate=cert)
+    config = CertificateConfig.objects.filter(activa=True).first()
 
     if survey_obj.completada:
         return redirect('survey_done', dni=dni)
@@ -1168,6 +1289,7 @@ def survey(request, dni, step=1):
         'step': step,
         'total_steps': total_steps,
         'survey': survey_obj,
+        'encuesta_obligatoria': config.encuesta_obligatoria if config else True,
     }
 
     if step == 1:
