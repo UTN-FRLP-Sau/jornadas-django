@@ -122,6 +122,24 @@
             {% endif %}
         </div>
 
+        {% if cert_alumno %}
+        <div class="card p-4 mt-3">
+            <h6 class="fw-bold mb-3">Certificado emitido</h6>
+            <p class="small text-muted mb-2">Tipo actual: <strong>{{ cert_alumno.get_tipo_display }}</strong></p>
+            <form method="POST" action="{% url 'reclamo_cambiar_tipo_cert' reclamo.pk %}">
+                {% csrf_token %}
+                <select name="tipo" class="form-select form-select-sm mb-2">
+                    <option value="diploma" {% if cert_alumno.tipo == 'diploma' %}selected{% endif %}>Diploma de asistencia</option>
+                    <option value="constancia_parcial" {% if cert_alumno.tipo == 'constancia_parcial' %}selected{% endif %}>Constancia de participación parcial</option>
+                    <option value="constancia_justificacion" {% if cert_alumno.tipo == 'constancia_justificacion' %}selected{% endif %}>Constancia de justificación</option>
+                </select>
+                <button type="submit" class="btn btn-outline-primary rounded-pill btn-sm w-100">
+                    <i class="fa fa-sync me-2"></i>Cambiar tipo y regenerar
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
         {% if reclamo.estado == 'pendiente' or reclamo.estado == 'ampliacion' %}
         <div class="card p-4">
             <h6 class="fw-bold mb-3">Resolver reclamo</h6>

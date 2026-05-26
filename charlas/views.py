@@ -46,6 +46,13 @@ TEMPLATES_CERT = {
 }
 
 
+def _get_dias_asistidos(dni):
+    from charlas.models import Registration
+    fechas = Registration.objects.filter(
+        dni=dni, attended=True
+    ).values_list('talk__date', flat=True).distinct()
+    return sorted(set(fechas))
+
 def _procesar_fila(row, talk_destino):
     try:
         if 'Documento_Nro' in row:
@@ -87,6 +94,12 @@ def _generate_constancia_pdf(cert):
     from reportlab.lib import colors
     from reportlab.lib.utils import ImageReader
     import qrcode
+    
+    dias = _get_dias_asistidos(cert.dni)
+    if dias:
+        dias_texto = ', '.join(dias[:-1]) + (' y ' + dias[-1] if len(dias) > 1 else dias[0])
+    else:
+        dias_texto = 'ningún día registrado'
 
     output_path = settings.MEDIA_ROOT / \
         'certificados' / f'cert_{cert.codigo}.pdf'
@@ -126,7 +139,8 @@ def _generate_constancia_pdf(cert):
             f"La Universidad Tecnológica Nacional Facultad Regional La Plata certifica que "
             f"{cert.nombre.title()} {cert.apellido.upper()} participó en actividades de las "
             f"Jornadas de Formación Profesional - Cuarta Edición, realizadas los días 19, 20 y 21 "
-            f"de Mayo de 2026, en el marco de una situación debidamente justificada ante la institución."
+            f"de Mayo de 2026, asistiendo los días {dias_texto}, en el marco de una situación "
+            f"debidamente justificada ante la institución."
         )
     else:  # constancia_justificacion
         texto = (
@@ -348,15 +362,6 @@ def _evaluar_alumno(dni, config):
     regs = Registration.objects.filter(
         dni=dni, attended=True).select_related('talk')
 
-    if not regs.exists():
-        return False
-
-    if config.requiere_magistral:
-        if not regs.filter(talk__department='Magistral').exists():
-            return False
-
-    regs_no_magistral = regs.exclude(talk__department='Magistral')
-
     # Obtener perdones aprobados
     reclamos_aprobados = Reclamo.objects.filter(dni=dni, estado='aprobado')
     dias_perdonados = []
@@ -365,23 +370,29 @@ def _evaluar_alumno(dni, config):
         dias_perdonados.extend(r.dias_perdonados_list)
         charlas_perdonadas += r.charlas_perdonadas_count
 
+    # Si no tiene inscripciones pero tiene perdones, puede cumplir igual
+    if not regs.exists() and not dias_perdonados and charlas_perdonadas == 0:
+        return False
+
+    if config.requiere_magistral:
+        if not regs.filter(talk__department='Magistral').exists():
+            return False
+
+    regs_no_magistral = regs.exclude(talk__department='Magistral')
+
     if config.modalidad == 'total':
-        total = regs_no_magistral.count() + charlas_perdonadas
+        total = regs_no_magistral.count() + charlas_perdonadas + len(dias_perdonados)
         return total >= config.minimo
 
     elif config.modalidad == 'por_dia':
-        from charlas.constants import FECHA_MAP
         dias = {}
         for reg in regs_no_magistral:
             fecha = reg.talk.date
             dias.setdefault(fecha, 0)
             dias[fecha] += 1
-
-        # Agregar días perdonados con mínimo requerido
         for dia in dias_perdonados:
             if dia not in dias:
-                dias[dia] = config.minimo  # se considera cumplido
-
+                dias[dia] = config.minimo
         return all(count >= config.minimo for count in dias.values()) and len(dias) > 0
 
     return False
@@ -1871,7 +1882,7 @@ def _aplicar_resolucion(reclamo):
                     dni=reclamo.dni,
                     legajo=reclamo.legajo,
                     correo=reclamo.correo,
-                    tipo='diploma',
+                    tipo='constancia_parcial',
                 )
                 try:
                     archivo = _generate_certificate_pdf(cert)
@@ -1884,16 +1895,36 @@ def _aplicar_resolucion(reclamo):
 
 @login_required
 def reclamo_detalle(request, pk):
+    from charlas.models import Certificate
     reclamo = get_object_or_404(Reclamo, pk=pk)
     inscripciones = Registration.objects.filter(
         dni=reclamo.dni
     ).select_related('talk').order_by('talk__date', 'talk__time')
+    cert_alumno = Certificate.objects.filter(dni=reclamo.dni).first()
 
     return render(request, 'charlas/reclamo_detalle.html', {
         'reclamo': reclamo,
         'inscripciones': inscripciones,
+        'cert_alumno': cert_alumno,
     })
 
+
+@login_required
+@require_POST
+def reclamo_cambiar_tipo_cert(request, pk):
+    reclamo = get_object_or_404(Reclamo, pk=pk)
+    cert = Certificate.objects.filter(dni=reclamo.dni).first()
+    if cert:
+        cert.tipo = request.POST.get('tipo', cert.tipo)
+        cert.archivo = ''  # forzar regeneración
+        cert.save()
+        try:
+            archivo = _generate_certificate_pdf(cert)
+            cert.archivo = archivo
+            cert.save()
+        except Exception as e:
+            print(f'[CERT] Error regenerando: {e}')
+    return redirect('reclamo_detalle', pk=pk)
 
 @login_required
 @require_POST

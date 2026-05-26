@@ -97,4 +97,6 @@ urlpatterns = [
     path('admin/reclamo/<int:pk>/', views.reclamo_detalle, name='reclamo_detalle'),
     path('admin/reclamo/<int:pk>/resolver/',
          views.reclamo_resolver, name='reclamo_resolver'),
+    path('admin/reclamo/<int:pk>/cambiar-tipo/',
+         views.reclamo_cambiar_tipo_cert, name='reclamo_cambiar_tipo_cert'),
 ]
