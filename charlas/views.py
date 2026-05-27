@@ -1036,54 +1036,6 @@ def certificate_emit(request):
     if not config:
         return redirect('certificate_dashboard')
 
-    dnis = Registration.objects.filter(
-        attended=True).values_list('dni', flat=True).distinct()
-    emitidos = 0
-    errores = 0
-
-    for dni in dnis:
-        if not _evaluar_alumno(dni, config):
-            continue
-        if Certificate.objects.filter(dni=dni).exists():
-            continue
-
-        reg = Registration.objects.filter(
-            dni=dni, attended=True).select_related('talk').first()
-
-        cert = Certificate.objects.create(
-            nombre=reg.nombre,
-            apellido=reg.apellido,
-            dni=reg.dni,
-            legajo=reg.legajo,
-            correo=reg.correo,
-            config=config,
-        )
-        try:
-            archivo = _generate_certificate_pdf(cert)
-            cert.archivo = archivo
-            cert.save()
-        except Exception as e:
-            print(f'[CERT PDF] Error generando PDF para {cert.dni}: {e}')
-
-        # Generar y enviar — por ahora placeholder
-        ok = _send_certificate_email(cert)
-        if ok:
-            emitidos += 1
-        else:
-            errores += 1
-
-    return render(request, 'charlas/certificate_emit_result.html', {
-        'emitidos': emitidos,
-        'errores': errores,
-    })
-
-
-@login_required
-def certificate_emit(request):
-    config = CertificateConfig.objects.filter(activa=True).first()
-    if not config:
-        return redirect('certificate_dashboard')
-
     # Si hay un job procesando, redirigir al status
     job_activo = EmissionJob.objects.filter(status='procesando').first()
     if job_activo:
