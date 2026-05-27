@@ -1839,6 +1839,7 @@ def _aplicar_resolucion(reclamo):
                 dni=reclamo.dni, talk=reclamo.talk).first()
             if reg:
                 reg.attended = True
+                reg.attended_reclamo = True
                 reg.save()
     elif reclamo.resolucion == 'certificado_directo':
         if not Certificate.objects.filter(dni=reclamo.dni).exists():
@@ -1931,6 +1932,12 @@ def reclamo_cambiar_tipo_cert(request, pk):
 def reclamo_resolver(request, pk):
     reclamo = get_object_or_404(Reclamo, pk=pk)
     accion = request.POST.get('accion')
+    
+    # Guard idempotency
+    if accion == 'aprobar' and reclamo.estado == 'aprobado':
+        return redirect('reclamo_detalle', pk=pk)
+    if accion == 'rechazar' and reclamo.estado == 'rechazado':
+        return redirect('reclamo_detalle', pk=pk)
 
     if accion == 'aprobar':
         reclamo.estado = 'aprobado'
