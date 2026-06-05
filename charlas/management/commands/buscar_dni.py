@@ -8,6 +8,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('dni', type=str, nargs='+', help='DNI/s a buscar')
+        parser.add_argument('--list', action='store_true',
+                            help='Exportar en formato CSV')
 
     def handle(self, *args, **options):
         for dni in options['dni']:
@@ -21,6 +23,13 @@ class Command(BaseCommand):
                 continue
 
             reg = regs.first()
+
+            if options['list']:
+                self.stdout.write(
+                    f"{reg.dni};{reg.legajo};{reg.nombre};{reg.apellido};{reg.correo}"
+                )
+                continue
+
             self.stdout.write(f"\nDatos del alumno:")
             self.stdout.write(f"  Nombre:  {reg.apellido}, {reg.nombre}")
             self.stdout.write(f"  DNI:     {reg.dni}")
