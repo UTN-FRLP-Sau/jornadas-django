@@ -7,36 +7,37 @@ class Command(BaseCommand):
     help = 'Busca un DNI en todas las inscripciones y muestra sus datos'
 
     def add_arguments(self, parser):
-        parser.add_argument('dni', type=str, help='DNI a buscar')
+        parser.add_argument('dni', type=str, nargs='+', help='DNI/s a buscar')
 
     def handle(self, *args, **options):
-        dni = options['dni'].strip()
-        regs = Registration.objects.filter(dni=dni).select_related(
-            'talk').order_by('talk__date', 'talk__time')
+        for dni in options['dni']:
+            dni = dni.strip()
+            regs = Registration.objects.filter(dni=dni).select_related(
+                'talk').order_by('talk__date', 'talk__time')
 
-        if not regs.exists():
-            self.stdout.write(self.style.ERROR(
-                f'No se encontraron inscripciones para el DNI {dni}'))
-            return
+            if not regs.exists():
+                self.stdout.write(self.style.ERROR(
+                    f'\nNo se encontraron inscripciones para el DNI {dni}'))
+                continue
 
-        reg = regs.first()
-        self.stdout.write(f"\nDatos del alumno:")
-        self.stdout.write(f"  Nombre:  {reg.apellido}, {reg.nombre}")
-        self.stdout.write(f"  DNI:     {reg.dni}")
-        self.stdout.write(f"  Legajo:  {reg.legajo}")
-        self.stdout.write(f"  Correo:  {reg.correo}")
+            reg = regs.first()
+            self.stdout.write(f"\nDatos del alumno:")
+            self.stdout.write(f"  Nombre:  {reg.apellido}, {reg.nombre}")
+            self.stdout.write(f"  DNI:     {reg.dni}")
+            self.stdout.write(f"  Legajo:  {reg.legajo}")
+            self.stdout.write(f"  Correo:  {reg.correo}")
 
-        self.stdout.write(f"\nInscripciones ({regs.count()}):")
-        self.stdout.write('-' * 90)
-        self.stdout.write(
-            f"{'ID':>5} {'Charla':<45} {'Depto':<12} {'Fecha':<22} {'Presente':>10}")
-        self.stdout.write('-' * 90)
-
-        for r in regs:
-            presente = '✔' if r.attended else '✗'
-            reclamo = ' (reclamo)' if r.attended_reclamo else ''
+            self.stdout.write(f"\nInscripciones ({regs.count()}):")
+            self.stdout.write('-' * 90)
             self.stdout.write(
-                f"{r.talk.id:>5} {r.talk.title[:43]:<45} {r.talk.department[:10]:<12} {r.talk.date:<22} {presente + reclamo:>10}"
-            )
+                f"{'ID':>5} {'Charla':<45} {'Depto':<12} {'Fecha':<22} {'Presente':>10}")
+            self.stdout.write('-' * 90)
 
-        self.stdout.write('-' * 90)
+            for r in regs:
+                presente = '✔' if r.attended else '✗'
+                reclamo = ' (reclamo)' if r.attended_reclamo else ''
+                self.stdout.write(
+                    f"{r.talk.id:>5} {r.talk.title[:43]:<45} {r.talk.department[:10]:<12} {r.talk.date:<22} {presente + reclamo:>10}"
+                )
+
+            self.stdout.write('-' * 90 + '\n')
