@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="margin:0; padding:0; background-color:#F4F7FE; font-family:'Helvetica Neue', Arial, sans-serif;">
 
@@ -23,49 +24,73 @@
                     </tr>
 
                     <!-- Cuerpo -->
-<p style="font-size:18px; color:#0F172B; margin:0 0 8px;">
-    ¡Felicitaciones, <strong>{{ cert.nombre }} {{ cert.apellido }}</strong>!
-</p>
-<p style="font-size:15px; color:#666565; margin:0 0 24px;">
-    Cumpliste con los requisitos de asistencia de las Jornadas de Formación Profesional 2026.
-</p>
-<p style="font-size:15px; color:#666565; margin:0 0 24px;">
-    Para obtener tu certificado, ingresá al siguiente link, completá una breve encuesta sobre el evento y podrás descargarlo de forma inmediata:
-</p>
+                    <tr>
+                        <td style="background:#ffffff; padding: 40px;">
 
-<!-- Botón de descarga -->
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-    <tr>
-        <td style="text-align:center;">
-            <a href="{{ site_url }}/certificado/descarga/" 
-               style="background: linear-gradient(to right, #2b4efe, #00d2ff); color:white; padding: 14px 32px; border-radius: 50px; text-decoration:none; font-weight:700; font-size:15px;">
-                Obtener mi certificado
-            </a>
-        </td>
-    </tr>
-</table>
+                            <p style="font-size:18px; color:#0F172B; margin:0 0 8px;">
+                                ¡Hola, <strong>{{ cert.nombre }} {{ cert.apellido }}</strong>!
+                            </p>
+                            <p style="font-size:15px; color:#666565; margin:0 0 16px;">
+                                Si recibís este correo es porque <strong>cumpliste con los requisitos de asistencia</strong> de las Jornadas de Formación Profesional 2026. ¡Felicitaciones!
+                            </p>
+                            <p style="font-size:15px; color:#666565; margin:0 0 24px;">
+                                Podés descargar tu diploma ingresando con tu DNI en el siguiente link:
+                            </p>
 
-<!-- Código de validación -->
-<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-    <tr>
-        <td style="background:#f8faff; border-radius:12px; padding:20px; text-align:center; border: 1px solid #e8ecf4;">
-            <p style="margin:0 0 8px; font-size:13px; color:#666565;">Código de validación</p>
-            <p style="margin:0 0 12px; font-size:28px; font-weight:700; color:#2b4efe; letter-spacing:4px;">
-                {{ cert.codigo }}
-            </p>
-            <p style="margin:0; font-size:12px; color:#666565;">
-                Cualquier persona puede verificar la autenticidad de tu certificado en:<br>
-                <a href="{{ site_url }}/certificado/validar/" style="color:#2b4efe;">
-                    {{ site_url }}/certificado/validar/
-                </a>
-            </p>
-        </td>
-    </tr>
-</table>
+                            <!-- Botón de descarga -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                                <tr>
+                                    <td style="text-align:center;">
+                                        <a href="{{ site_url }}/certificado/descarga/"
+                                           style="background: linear-gradient(to right, #2b4efe, #00d2ff); color:white; padding: 14px 32px; border-radius: 50px; text-decoration:none; font-weight:700; font-size:15px;">
+                                            Descargar mi diploma
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
 
-<p style="font-size:13px; color:#666565; margin:0;">
-    Este certificado acredita tu participación en las actividades de las Jornadas de Formación Profesional 2026, UTN Facultad Regional La Plata.
-</p>
+                            <!-- Link de texto -->
+                            <p style="font-size:12px; color:#666565; text-align:center; margin:0 0 24px;">
+                                Si el botón no funciona, ingresá al siguiente link en tu navegador web:<br>
+                                <a href="{{ site_url }}/certificado/descarga/" style="color:#2b4efe;">
+                                    {{ site_url }}/certificado/descarga/
+                                </a>
+                            </p>
+
+                            <p style="font-size:15px; color:#666565; margin:0 0 16px;">
+                                También te pedimos, si podés, que completes una breve <strong>encuesta de percepción</strong> sobre las Jornadas. Tu opinión es muy valiosa para mejorar futuras ediciones.
+                            </p>
+
+                            <!-- Aviso compañeros -->
+                            <div style="background:#f8faff; border-radius:12px; padding:16px 20px; border:1px solid #e8ecf4; margin-bottom:24px;">
+                                <p style="margin:0; font-size:13px; color:#666565;">
+                                    📢 <strong>¿Conocés a alguien que no recibió este correo?</strong> Comentale que igualmente puede ingresar al link con su DNI e intentar descargar su diploma. Si no cumplió con las condiciones requeridas, el sistema se lo informará y podrá realizar el reclamo correspondiente hasta el <strong>{{ fecha_cierre_reclamo }}</strong>.
+                                </p>
+                            </div>
+
+                            <p style="font-size:13px; color:#666565; margin:0;">
+                                Muchas gracias por participar de las Jornadas de Formación Profesional 2026.
+                            </p>
+
+                        </td>
+                    </tr>
+
                     <!-- Footer -->
                     <tr>
                         <td style="background: linear-gradient(to right, #2b4efe, #00d2ff); border-radius: 0 0 16px 16px; padding: 24px 40px; text-align:center;">
+                            <p style="margin:0; color:#ffffff; font-size:13px;">
+                                UTN · Facultad Regional La Plata
+                            </p>
+                            <p style="margin:4px 0 0; color:#e0f0ff; font-size:12px;">
+                                Este correo fue generado automáticamente, por favor no respondas.
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

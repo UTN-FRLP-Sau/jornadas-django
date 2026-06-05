@@ -311,10 +311,20 @@ def _send_certificate_email(cert):
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
         from django.template.loader import render_to_string
+        from datetime import timedelta
+        from charlas.models import CertificateConfig, EmissionJob
+
+        config = CertificateConfig.objects.filter(activa=True).first()
+        fecha_cierre_reclamo = None
+        if config:
+            ultimo_job = EmissionJob.objects.filter(status='completado').order_by('-finished_at').first()
+            if ultimo_job and ultimo_job.finished_at:
+                fecha_cierre_reclamo = (ultimo_job.finished_at.date() + timedelta(days=1) + timedelta(days=config.dias_reclamo)).strftime('%d/%m/%Y')
 
         html_body = render_to_string('charlas/email_certificado.html', {
             'cert': cert,
             'site_url': settings.SITE_URL,
+            'fecha_cierre_reclamo': fecha_cierre_reclamo or 'comunicar por este medio',
         })
 
         msg = MIMEMultipart('mixed')
