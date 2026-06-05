@@ -20,9 +20,20 @@
                         </p>
                         {% endif %}
                     <p class="text-muted small mb-4">La encuesta tarda aproximadamente 3 minutos.</p>
+                    {% if request.GET.opcional %}
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <a href="{% url 'survey_step' dni=cert.dni step=2 %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">
+                            <i class="fa fa-clipboard-list me-2"></i>Responder encuesta
+                        </a>
+                        <a href="{% url 'certificate_download' %}" class="btn btn-outline-secondary py-3 px-4 rounded-pill">
+                            En otro momento
+                        </a>
+                    </div>
+                    {% else %}
                     <a href="{% url 'survey_step' dni=cert.dni step=2 %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">
                         Comenzar encuesta <i class="fa fa-arrow-right ms-2"></i>
                     </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

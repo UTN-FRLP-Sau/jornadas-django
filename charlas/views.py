@@ -1132,7 +1132,7 @@ def certificate_download(request):
                     if config.encuesta_obligatoria:
                         return redirect('survey', dni=dni)
                     else:
-                        encuesta_pendiente = True
+                        return redirect(f"/certificado/encuesta/{dni}/1/?opcional=1")
 
                 if not cert.archivo or not (settings.MEDIA_ROOT / cert.archivo.name).exists():
                     print(
