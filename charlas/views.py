@@ -370,42 +370,66 @@ def _send_certificate_email(cert):
         return False
 
 
-def _evaluar_alumno(dni, config):
-    from charlas.models import Reclamo
+def _evaluar_alumno(dni, config, dias_totales_jornada):
+    """
+    Evalúa si un alumno cumple con los requisitos.
+    dias_totales_jornada: Una lista o set con las fechas (date) de todos los días de la jornada.
+                          Ej: [datetime.date(2026, 10, 1), datetime.date(2026, 10, 2)]
+    """
+    from charlas.models import Reclamo, Talk
 
     regs = Registration.objects.filter(dni=dni, attended=True)
+    
+    # 1. OBTENER TODOS LOS DÍAS OFICIALES DE LA JORNADA
+    # Esto hace un SELECT DISTINCT de la fecha de todas las charlas
+    dias_totales_jornada = Talk.objects.values_list('date', flat=True).distinct()
+
     # Obtener perdones aprobados
     reclamos_aprobados = Reclamo.objects.filter(dni=dni, estado='aprobado')
-    dias_perdonados = []
+    dias_perdonados = set()
     charlas_perdonadas = 0
+
     for r in reclamos_aprobados:
-        dias_perdonados.extend(r.dias_perdonados_list)
+        # Usamos set para evitar duplicados en días perdonados
+        dias_perdonados.update(r.dias_perdonados_list)
         charlas_perdonadas += r.charlas_perdonadas_count
 
-    # Si no tiene inscripciones pero tiene perdones, puede cumplir igual
+    # Condición de salida rápida si no hay actividad ni perdones
     if not regs.exists() and not dias_perdonados and charlas_perdonadas == 0:
         return False
 
+    # Validar charla magistral si se requiere
     if config.requiere_magistral:
         if not regs.filter(talk__department='Magistral').exists():
             return False
 
     regs_no_magistral = regs.exclude(talk__department='Magistral')
 
+    # MODALIDAD: TOTAL
     if config.modalidad == 'total':
         total = regs_no_magistral.count() + charlas_perdonadas + len(dias_perdonados)
         return total >= config.minimo
 
+    # MODALIDAD: POR DÍA (N charlas por cada día de la jornada)
     elif config.modalidad == 'por_dia':
-        dias = {}
+        # 1. Armamos el diccionario con los días que asistió el alumno
+        dias_asistidos = {}
         for reg in regs_no_magistral:
             fecha = reg.talk.date
-            dias.setdefault(fecha, 0)
-            dias[fecha] += 1
-        for dia in dias_perdonados:
-            if dia not in dias:
-                dias[dia] = config.minimo
-        return all(count >= config.minimo for count in dias.values()) and len(dias) > 0
+            dias_asistidos[fecha] = dias_asistidos.get(fecha, 0) + 1
+
+        # 2. Validamos CADA UNO de los días oficiales de la jornada
+        for dia in dias_totales_jornada:
+            # Si el día está perdonado, se da por cumplido automáticamente
+            if dia in dias_perdonados:
+                continue
+
+            # Si no fue ese día (y no está perdonado) o no llega al mínimo, no cumple
+            charlas_ese_dia = dias_asistidos.get(dia, 0)
+            if charlas_ese_dia < config.minimo:
+                return False
+
+        return True
 
     return False
 
