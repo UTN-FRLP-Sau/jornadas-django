@@ -967,27 +967,82 @@ def export_import_results(request):
 
 @login_required
 def certificate_dashboard(request):
+    from django.db.models import Count
     config = CertificateConfig.objects.filter(activa=True).first()
     elegibles = []
 
     if config:
-        # Obtener todos los DNIs con asistencia
-        dnis = Registration.objects.filter(
-            attended=True).values_list('dni', flat=True).distinct()
+        # Un solo query para todos los datos de asistencia agrupados por DNI
+        regs_por_dni = (
+            Registration.objects
+            .filter(attended=True)
+            .values('dni', 'nombre', 'apellido', 'legajo', 'correo')
+            .annotate(total_charlas=Count('id'))
+        )
 
-        for dni in dnis:
-            if _evaluar_alumno(dni, config):
-                reg = Registration.objects.filter(
-                    dni=dni, attended=True).select_related('talk').first()
-                ya_tiene = Certificate.objects.filter(dni=dni).exists()
+        # Certificados ya emitidos
+        certs_emitidos = set(Certificate.objects.values_list('dni', flat=True))
+
+        # Reclamos aprobados agrupados por DNI
+        from charlas.models import Reclamo
+        reclamos_por_dni = {}
+        for r in Reclamo.objects.filter(estado='aprobado'):
+            if r.dni not in reclamos_por_dni:
+                reclamos_por_dni[r.dni] = {'dias': [], 'charlas': 0}
+            reclamos_por_dni[r.dni]['dias'].extend(r.dias_perdonados_list)
+            reclamos_por_dni[r.dni]['charlas'] += r.charlas_perdonadas_count
+
+        # DNIs con magistral
+        dnis_con_magistral = set(
+            Registration.objects.filter(
+                attended=True, talk__department='Magistral'
+            ).values_list('dni', flat=True)
+        )
+
+        # Asistencias por día por DNI (para modalidad por_dia)
+        asistencias_por_dia = {}
+        for reg in Registration.objects.filter(attended=True).exclude(talk__department='Magistral').values('dni', 'talk__date'):
+            dni = reg['dni']
+            fecha = reg['talk__date']
+            if dni not in asistencias_por_dia:
+                asistencias_por_dia[dni] = {}
+            asistencias_por_dia[dni][fecha] = asistencias_por_dia[dni].get(
+                fecha, 0) + 1
+
+        for row in regs_por_dni:
+            dni = row['dni']
+            perdones = reclamos_por_dni.get(dni, {'dias': [], 'charlas': 0})
+            dias_perdonados = perdones['dias']
+            charlas_perdonadas = perdones['charlas']
+
+            # Evaluar condiciones sin queries adicionales
+            if config.requiere_magistral and dni not in dnis_con_magistral:
+                continue
+
+            dias_asistidos = asistencias_por_dia.get(dni, {})
+
+            if config.modalidad == 'total':
+                total = sum(dias_asistidos.values()) + \
+                    charlas_perdonadas + len(dias_perdonados)
+                cumple = total >= config.minimo
+            elif config.modalidad == 'por_dia':
+                dias = dict(dias_asistidos)
+                for dia in dias_perdonados:
+                    dias[dia] = dias.get(dia, 0) + config.minimo
+                cumple = bool(dias) and all(
+                    count >= config.minimo for count in dias.values())
+            else:
+                cumple = False
+
+            if cumple:
                 elegibles.append({
                     'dni': dni,
-                    'nombre': reg.nombre,
-                    'apellido': reg.apellido,
-                    'legajo': reg.legajo,
-                    'correo': reg.correo,
-                    'charlas': Registration.objects.filter(dni=dni, attended=True).count(),
-                    'ya_emitido': ya_tiene,
+                    'nombre': row['nombre'],
+                    'apellido': row['apellido'],
+                    'legajo': row['legajo'],
+                    'correo': row['correo'],
+                    'charlas': row['total_charlas'],
+                    'ya_emitido': dni in certs_emitidos,
                 })
 
     return render(request, 'charlas/certificate_dashboard.html', {
