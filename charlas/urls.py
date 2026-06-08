@@ -99,4 +99,6 @@ urlpatterns = [
          views.reclamo_resolver, name='reclamo_resolver'),
     path('admin/reclamo/<int:pk>/cambiar-tipo/',
          views.reclamo_cambiar_tipo_cert, name='reclamo_cambiar_tipo_cert'),
+    path('certificado/encuesta/<str:dni>/posponer/',
+         views.survey_posponer, name='survey_posponer'),
 ]

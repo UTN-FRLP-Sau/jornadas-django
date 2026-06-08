@@ -46,6 +46,10 @@ TEMPLATES_CERT = {
 }
 
 
+def survey_posponer(request, dni):
+    request.session[f'encuesta_pospuesta_{dni}'] = True
+    return redirect('certificate_download')
+
 def _get_dias_asistidos(dni):
     from charlas.models import Registration
     fechas = Registration.objects.filter(
@@ -1132,7 +1136,8 @@ def certificate_download(request):
                     if config.encuesta_obligatoria:
                         return redirect('survey', dni=dni)
                     else:
-                        return redirect(f"/certificado/encuesta/{dni}/1/?opcional=1")
+                        if not request.session.get(f'encuesta_pospuesta_{dni}'):
+                            return redirect(f"/certificado/encuesta/{dni}/1/?opcional=1")
 
                 if not cert.archivo or not (settings.MEDIA_ROOT / cert.archivo.name).exists():
                     print(

@@ -25,9 +25,12 @@
                         <a href="{% url 'survey_step' dni=cert.dni step=2 %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">
                             <i class="fa fa-clipboard-list me-2"></i>Responder encuesta
                         </a>
-                        <a href="{% url 'certificate_download' %}" class="btn btn-outline-secondary py-3 px-4 rounded-pill">
-                            En otro momento
-                        </a>
+                        <form method="POST" action="{% url 'survey_posponer' dni=cert.dni %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-secondary py-3 px-4 rounded-pill">
+                                En otro momento
+                            </button>
+                        </form>
                     </div>
                     {% else %}
                     <a href="{% url 'survey_step' dni=cert.dni step=2 %}" class="btn btn-primary-gradient py-3 px-5 rounded-pill">
