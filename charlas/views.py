@@ -373,9 +373,7 @@ def _send_certificate_email(cert):
 def _evaluar_alumno(dni, config):
     from charlas.models import Reclamo
 
-    regs = Registration.objects.filter(
-        dni=dni, attended=True).select_related('talk')
-
+    regs = Registration.objects.filter(dni=dni, attended=True)
     # Obtener perdones aprobados
     reclamos_aprobados = Reclamo.objects.filter(dni=dni, estado='aprobado')
     dias_perdonados = []
