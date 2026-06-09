@@ -1000,12 +1000,21 @@ def certificate_dashboard(request):
         from charlas.models import Talk
         dias_jornada = set(Talk.objects.values_list('date', flat=True).distinct())
 
-        # Un solo query para todos los datos de asistencia agrupados por DNI
+        # Un solo query para todos los datos de asistencia agrupados por DNI.
+        # Agrupamos solo por DNI para que múltiples registros del mismo alumno
+        # (con distintos nombre/correo) no generen filas duplicadas con conteo erróneo.
+        from django.db.models import Max
         regs_por_dni = (
             Registration.objects
             .filter(attended=True)
-            .values('dni', 'nombre', 'apellido', 'legajo', 'correo')
-            .annotate(total_charlas=Count('id'))
+            .values('dni')
+            .annotate(
+                total_charlas=Count('id'),
+                nombre=Max('nombre'),
+                apellido=Max('apellido'),
+                legajo=Max('legajo'),
+                correo=Max('correo'),
+            )
         )
 
         # Certificados ya emitidos
