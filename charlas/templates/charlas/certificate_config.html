@@ -26,8 +26,14 @@
                             <label class="form-check-label fw-bold">{{ form.requiere_magistral.label }}</label>
                         </div>
                         <div class="mb-4">
+                            <label class="form-label fw-bold">{{ form.fecha_cierre_reclamo.label }}</label>
+                            {{ form.fecha_cierre_reclamo }}
+                            <div class="form-text">Fecha exacta hasta la que se aceptan reclamos. Si la dejás en blanco, se calcula automáticamente sumando los días indicados abajo a partir del envío de certificados.</div>
+                        </div>
+                        <div class="mb-4">
                             <label class="form-label fw-bold">{{ form.dias_reclamo.label }}</label>
                             {{ form.dias_reclamo }}
+                            <div class="form-text">Solo se usa si no hay una fecha fija establecida arriba.</div>
                         </div>
                         <div class="mb-4">
                             <label class="form-label fw-bold">{{ form.dias_respuesta.label }}</label>
