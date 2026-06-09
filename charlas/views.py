@@ -313,9 +313,7 @@ def _run_emission(job_id, config_id):
 
 def _send_certificate_email(cert):
     try:
-        from django.core.mail import get_connection
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
+        from django.core.mail import EmailMultiAlternatives
         from django.template.loader import render_to_string
         from datetime import timedelta
         from charlas.models import CertificateConfig, EmissionJob
@@ -333,39 +331,14 @@ def _send_certificate_email(cert):
             'fecha_cierre_reclamo': fecha_cierre_reclamo or 'comunicar por este medio',
         })
 
-        msg = MIMEMultipart('mixed')
-        msg['Subject'] = 'Tu certificado — Jornadas de Formación Profesional 2026'
-        msg['From'] = settings.DEFAULT_FROM_EMAIL
-        msg['To'] = cert.correo
-
-        alt = MIMEMultipart('alternative')
-        alt.attach(MIMEText(html_body, 'html'))
-        msg.attach(alt)
-        '''
-        # Generar PDF
-        archivo_path = settings.MEDIA_ROOT / cert.archivo if cert.archivo else None
-
-        if archivo_path and archivo_path.exists():
-            with open(archivo_path, 'rb') as f:
-                pdf_bytes = f.read()
-
-            from email.mime.application import MIMEApplication
-            pdf_mime = MIMEApplication(pdf_bytes, _subtype='pdf')
-            pdf_mime.add_header(
-                'Content-Disposition', 'attachment',
-                filename=f'certificado_{cert.apellido}_{cert.nombre}.pdf'
-            )
-            msg.attach(pdf_mime)
-        '''
-
-        connection = get_connection()
-        connection.open()
-        connection.connection.sendmail(
-            settings.DEFAULT_FROM_EMAIL,
-            [cert.correo],
-            msg.as_string()
+        email = EmailMultiAlternatives(
+            subject='Tu certificado — Jornadas de Formación Profesional 2026',
+            body='',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[cert.correo],
         )
-        connection.close()
+        email.attach_alternative(html_body, 'text/html')
+        email.send()
         return True
     except Exception as exc:
         print(f'[CERT] Error enviando a {cert.correo}: {exc}')
