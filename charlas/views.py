@@ -273,10 +273,12 @@ def _run_emission(job_id, config_id):
     job.save()
 
     try:
+        from charlas.models import Talk
+        dias_jornada = set(Talk.objects.values_list('date', flat=True).distinct())
         dnis = Registration.objects.filter(
             attended=True).values_list('dni', flat=True).distinct()
         elegibles = [dni for dni in dnis if _evaluar_alumno(
-            dni, config) and not Certificate.objects.filter(dni=dni).exists()]
+            dni, config, dias_jornada) and not Certificate.objects.filter(dni=dni).exists()]
         job.total = len(elegibles)
         job.save()
 
@@ -370,19 +372,18 @@ def _send_certificate_email(cert):
         return False
 
 
-def _evaluar_alumno(dni, config, dias_totales_jornada):
+def _evaluar_alumno(dni, config, dias_totales_jornada=None):
     """
     Evalúa si un alumno cumple con los requisitos.
-    dias_totales_jornada: Una lista o set con las fechas (date) de todos los días de la jornada.
-                          Ej: [datetime.date(2026, 10, 1), datetime.date(2026, 10, 2)]
+    dias_totales_jornada: set de fechas (date) de todos los días oficiales de la jornada.
+                          Si no se pasa, se computa internamente (menos eficiente en loops).
     """
     from charlas.models import Reclamo, Talk
 
     regs = Registration.objects.filter(dni=dni, attended=True)
-    
-    # 1. OBTENER TODOS LOS DÍAS OFICIALES DE LA JORNADA
-    # Esto hace un SELECT DISTINCT de la fecha de todas las charlas
-    dias_totales_jornada = Talk.objects.values_list('date', flat=True).distinct()
+
+    if dias_totales_jornada is None:
+        dias_totales_jornada = set(Talk.objects.values_list('date', flat=True).distinct())
 
     # Obtener perdones aprobados
     reclamos_aprobados = Reclamo.objects.filter(dni=dni, estado='aprobado')
@@ -996,6 +997,9 @@ def certificate_dashboard(request):
     elegibles = []
 
     if config:
+        from charlas.models import Talk
+        dias_jornada = set(Talk.objects.values_list('date', flat=True).distinct())
+
         # Un solo query para todos los datos de asistencia agrupados por DNI
         regs_por_dni = (
             Registration.objects
@@ -1050,11 +1054,17 @@ def certificate_dashboard(request):
                     charlas_perdonadas + len(dias_perdonados)
                 cumple = total >= config.minimo
             elif config.modalidad == 'por_dia':
-                dias = dict(dias_asistidos)
-                for dia in dias_perdonados:
-                    dias[dia] = dias.get(dia, 0) + config.minimo
-                cumple = bool(dias) and all(
-                    count >= config.minimo for count in dias.values())
+                if not dias_jornada:
+                    cumple = False
+                else:
+                    dias_perdonados_set = set(dias_perdonados)
+                    cumple = True
+                    for dia in dias_jornada:
+                        if dia in dias_perdonados_set:
+                            continue
+                        if dias_asistidos.get(dia, 0) < config.minimo:
+                            cumple = False
+                            break
             else:
                 cumple = False
 
@@ -1919,7 +1929,7 @@ def _aplicar_resolucion(reclamo):
 
         # Re-evaluar y emitir si cumple
         config = CertificateConfig.objects.filter(activa=True).first()
-        if config and _evaluar_alumno(reclamo.dni, config):
+        if config and _evaluar_alumno(reclamo.dni, config):  # dias_totales_jornada se computa internamente
             if not Certificate.objects.filter(dni=reclamo.dni).exists():
                 cert = Certificate.objects.create(
                     nombre=reclamo.nombre,
