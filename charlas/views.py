@@ -315,15 +315,14 @@ def _send_certificate_email(cert):
     try:
         from django.core.mail import EmailMultiAlternatives
         from django.template.loader import render_to_string
-        from datetime import timedelta
-        from charlas.models import CertificateConfig, EmissionJob
+        from charlas.models import CertificateConfig
 
         config = CertificateConfig.objects.filter(activa=True).first()
         fecha_cierre_reclamo = None
         if config:
-            ultimo_job = EmissionJob.objects.filter(status='completado').order_by('-finished_at').first()
-            if ultimo_job and ultimo_job.finished_at:
-                fecha_cierre_reclamo = (ultimo_job.finished_at.date() + timedelta(days=1) + timedelta(days=config.dias_reclamo)).strftime('%d/%m/%Y')
+            fecha = config.get_fecha_cierre_reclamo()
+            if fecha:
+                fecha_cierre_reclamo = fecha.strftime('%d/%m/%Y')
 
         html_body = render_to_string('charlas/email_certificado.html', {
             'cert': cert,
@@ -1076,7 +1075,7 @@ def certificate_config(request):
     class ConfigForm(django_forms.ModelForm):
         class Meta:
             model = CertificateConfig
-            fields = ['modalidad', 'minimo', 'requiere_magistral', 'descarga_habilitada', 'mensaje_bloqueado', 'dias_reclamo', 'dias_respuesta', 'encuesta_obligatoria']
+            fields = ['modalidad', 'minimo', 'requiere_magistral', 'descarga_habilitada', 'mensaje_bloqueado', 'dias_reclamo', 'dias_respuesta', 'encuesta_obligatoria', 'fecha_cierre_reclamo']
             widgets = {
                 'modalidad': django_forms.Select(attrs={'class': 'form-select'}),
                 'minimo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
@@ -1086,6 +1085,7 @@ def certificate_config(request):
                 'encuesta_obligatoria': django_forms.CheckboxInput(attrs={'class': 'form-check-input'}),
                 'dias_reclamo': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
                 'dias_respuesta': django_forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+                'fecha_cierre_reclamo': django_forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             }
             labels = {
                 'modalidad': 'Modalidad',
@@ -1094,8 +1094,9 @@ def certificate_config(request):
                 'descarga_habilitada': 'Habilitar descarga de certificados',
                 'mensaje_bloqueado': 'Mensaje cuando la descarga está bloqueada',
                 'encuesta_obligatoria': 'Encuesta obligatoria para descargar el certificado',
-                'dias_reclamo': 'Días para reclamar',
+                'dias_reclamo': 'Días para reclamar (si no hay fecha fija)',
                 'dias_respuesta': 'Días para responder reclamos',
+                'fecha_cierre_reclamo': 'Fecha de cierre de reclamos (opcional)',
             }
 
     form = ConfigForm(instance=config)

@@ -98,8 +98,15 @@ class CertificateConfig(models.Model):
     encuesta_obligatoria = models.BooleanField(
         'Encuesta obligatoria para descargar', default=True)
     mensaje_bloqueado = models.TextField('Mensaje cuando está bloqueado', default='La descarga de certificados aún no está habilitada. Te avisaremos por correo cuando esté disponible.')
-    dias_reclamo = models.PositiveIntegerField('Días para reclamar', default=7)
+    dias_reclamo = models.PositiveIntegerField(
+        'Días para reclamar', default=7,
+        help_text='Se usa solo si no se establece una fecha fija de cierre.')
     dias_respuesta = models.PositiveIntegerField('Días para responder', default=20)
+    fecha_cierre_reclamo = models.DateField(
+        'Fecha de cierre de reclamos', null=True, blank=True,
+        help_text='Fecha fija hasta la que se aceptan reclamos. '
+                  'Si se deja en blanco, se calcula automáticamente sumando '
+                  '"Días para reclamar" a la fecha de envío de certificados.')
 
     class Meta:
         verbose_name = 'Configuración de Certificados'
@@ -107,6 +114,17 @@ class CertificateConfig(models.Model):
 
     def __str__(self):
         return f"{self.get_modalidad_display()} — mín. {self.minimo} {'+ magistral' if self.requiere_magistral else ''}"
+
+    def get_fecha_cierre_reclamo(self):
+        """Devuelve la fecha de cierre de reclamos: fija si está seteada, calculada si no."""
+        if self.fecha_cierre_reclamo:
+            return self.fecha_cierre_reclamo
+        from datetime import timedelta
+        from charlas.models import EmissionJob
+        ultimo_job = EmissionJob.objects.filter(status='completado').order_by('-finished_at').first()
+        if ultimo_job and ultimo_job.finished_at:
+            return ultimo_job.finished_at.date() + timedelta(days=1) + timedelta(days=self.dias_reclamo)
+        return None
 
 
 class Certificate(models.Model):
