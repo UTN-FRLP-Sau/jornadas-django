@@ -89,6 +89,7 @@ def _run_en_background(certs, tanda_size, espera_horas, solo_descargados):
                 ok = _send_fe_erratas(cert)
                 print(
                     f'  {"✔" if ok else "✗"} {cert.apellido}, {cert.nombre} — {cert.correo}')
+                time.sleep(3)
 
         if i < len(tandas) - 1:
             print(
@@ -110,6 +111,8 @@ class Command(BaseCommand):
                             help='Solo enviar correo a quienes descargaron')
         parser.add_argument('--dry-run', action='store_true',
                             help='Simular sin hacer cambios')
+        parser.add_argument('--test-email', type=str,
+                            help='Enviar solo el primer certificado a este correo para prueba')
 
     def handle(self, *args, **options):
         certs = list(Certificate.objects.filter(tipo='diploma'))
@@ -121,6 +124,14 @@ class Command(BaseCommand):
             for cert in certs[:10]:
                 self.stdout.write(
                     f'  {cert.apellido}, {cert.nombre} — {cert.correo}')
+            return
+        
+        if options.get('test_email'):
+            cert = Certificate.objects.filter(tipo='diploma').first()
+            cert.correo = options['test_email']  # override sin guardar
+            ok = _send_fe_erratas(cert)
+            self.stdout.write(self.style.SUCCESS(
+                f'Test enviado a {options["test_email"]}: {"OK" if ok else "ERROR"}'))
             return
 
         self.stdout.write(
