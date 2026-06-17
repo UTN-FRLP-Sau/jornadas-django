@@ -33,17 +33,17 @@ def _send_fe_erratas(cert):
         alt.attach(MIMEText(html, 'html'))
         msg.attach(alt)
 
-        # Adjuntar PDF
-        if cert.archivo:
-            pdf_path = settings.MEDIA_ROOT / cert.archivo.name
-            if pdf_path.exists():
-                with open(pdf_path, 'rb') as f:
-                    pdf = MIMEApplication(f.read(), _subtype='pdf')
-                    pdf.add_header(
-                        'Content-Disposition', 'attachment',
-                        filename=f'diploma_{cert.apellido}_{cert.nombre}.pdf'
-                    )
-                    msg.attach(pdf)
+        ## Adjuntar PDF
+        #if cert.archivo:
+        #    pdf_path = settings.MEDIA_ROOT / cert.archivo.name
+        #    if pdf_path.exists():
+        #        with open(pdf_path, 'rb') as f:
+        #            pdf = MIMEApplication(f.read(), _subtype='pdf')
+        #            pdf.add_header(
+        #                'Content-Disposition', 'attachment',
+        #                filename=f'diploma_{cert.apellido}_{cert.nombre}.pdf'
+        #            )
+        #            msg.attach(pdf)
 
         connection = get_connection()
         connection.open()
