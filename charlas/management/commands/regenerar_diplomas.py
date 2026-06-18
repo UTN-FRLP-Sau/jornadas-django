@@ -111,7 +111,31 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
 
                 # Enviar fe de erratas a todos; adjuntar PDF solo a quienes completaron la encuesta
                 attach_pdf = cert.dni in dnis_con_encuesta
-                ok = _send_fe_erratas(cert, attach_pdf=attach_pdf, connection=conn)
+                msg = _build_message(cert, attach_pdf)
+                ok = False
+                for attempt in range(2):
+                    try:
+                        conn.connection.sendmail(
+                            settings.DEFAULT_FROM_EMAIL, [cert.correo], msg.as_string()
+                        )
+                        ok = True
+                        break
+                    except Exception as e:
+                        if attempt == 0:
+                            print(f'[RECONNECT] Conexión caída ({e}), reconectando...')
+                            try:
+                                conn.close()
+                            except Exception:
+                                pass
+                            try:
+                                conn = get_connection()
+                                conn.open()
+                            except Exception as re:
+                                print(f'[RECONNECT] No se pudo reconectar: {re}')
+                                break
+                        else:
+                            print(f'[FE ERRATAS] Error enviando a {cert.correo}: {e}')
+
                 adjunto_str = ' [+diploma]' if attach_pdf else ''
                 print(f'  {"✔" if ok else "✗"} {cert.apellido}, {cert.nombre} — {cert.correo}{adjunto_str}')
 
@@ -123,7 +147,10 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
 
                 time.sleep(3)
 
-            conn.close()
+            try:
+                conn.close()
+            except Exception:
+                pass
 
             if i < len(tandas) - 1:
                 print(f'[TANDA {i+1}] Esperando {espera_horas}h para la próxima tanda...')
@@ -145,8 +172,8 @@ class Command(BaseCommand):
     help = 'Regenera diplomas con nuevo código (invalida anteriores) y envía fe de erratas. Adjunta el diploma a quienes completaron la encuesta.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--tanda', type=int, default=500,
-                            help='Tamaño de cada tanda (default: 500)')
+        parser.add_argument('--tanda', type=int, default=100,
+                            help='Tamaño de cada tanda (default: 100)')
         parser.add_argument('--espera', type=float, default=1.0,
                             help='Horas entre tandas (default: 1)')
         parser.add_argument('--dry-run', action='store_true',
