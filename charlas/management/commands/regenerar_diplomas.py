@@ -198,7 +198,7 @@ class Command(BaseCommand):
         job = EmissionJob.objects.create(total=len(certs))
         self.stdout.write(f'Tanda: {options["tanda"]} | Espera: {options["espera"]}h')
         self.stdout.write(self.style.SUCCESS(
-            f'Seguimiento en: {settings.SITE_URL}/certificados/emitir/status/{job.id}/'))
+            f'Seguimiento en: {settings.SITE_URL}/admin/certificados/emitir/{job.id}/'))
         self.stdout.write('Iniciando en segundo plano...')
 
         t = threading.Thread(
