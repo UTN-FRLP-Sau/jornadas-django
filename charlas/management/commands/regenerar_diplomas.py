@@ -55,8 +55,13 @@ def _send_fe_erratas(cert, attach_pdf=False):
         return False
 
 
-def _run_en_background(certs, tanda_size, espera_horas):
-    from charlas.models import Survey
+def _run_en_background(certs, tanda_size, espera_horas, job_id):
+    from django.utils import timezone
+    from charlas.models import Survey, EmissionJob
+
+    job = EmissionJob.objects.get(id=job_id)
+    job.status = 'procesando'
+    job.save()
 
     dnis_con_encuesta = set(
         Survey.objects.filter(completada=True).values_list('certificate__dni', flat=True)
@@ -65,42 +70,61 @@ def _run_en_background(certs, tanda_size, espera_horas):
 
     tandas = [certs[i:i+tanda_size] for i in range(0, len(certs), tanda_size)]
 
-    for i, tanda in enumerate(tandas):
-        print(f'[TANDA {i+1}/{len(tandas)}] Procesando {len(tanda)} certificados...')
+    try:
+        for i, tanda in enumerate(tandas):
+            print(f'[TANDA {i+1}/{len(tandas)}] Procesando {len(tanda)} certificados...')
 
-        for cert in tanda:
-            # Borrar PDF viejo
-            if cert.archivo:
-                path = settings.MEDIA_ROOT / cert.archivo.name
-                if path.exists():
-                    os.remove(path)
-            cert.archivo = ''
+            for cert in tanda:
+                # Borrar PDF viejo
+                if cert.archivo:
+                    path = settings.MEDIA_ROOT / cert.archivo.name
+                    if path.exists():
+                        os.remove(path)
+                cert.archivo = ''
 
-            # Cambiar código de validación (invalida el diploma anterior)
-            cert.codigo = generate_cert_code()
-            cert.save()
-
-            # Regenerar PDF con el nuevo código
-            try:
-                archivo = _generate_certificate_pdf(cert)
-                cert.archivo = archivo
+                # Cambiar código de validación (invalida el diploma anterior)
+                cert.codigo = generate_cert_code()
                 cert.save()
-            except Exception as e:
-                print(f'[ERROR] Generando {cert.dni}: {e}')
-                continue
 
-            # Enviar fe de erratas a todos; adjuntar PDF solo a quienes completaron la encuesta
-            attach_pdf = cert.dni in dnis_con_encuesta
-            ok = _send_fe_erratas(cert, attach_pdf=attach_pdf)
-            adjunto_str = ' [+diploma]' if attach_pdf else ''
-            print(f'  {"✔" if ok else "✗"} {cert.apellido}, {cert.nombre} — {cert.correo}{adjunto_str}')
-            time.sleep(3)
+                # Regenerar PDF con el nuevo código
+                try:
+                    archivo = _generate_certificate_pdf(cert)
+                    cert.archivo = archivo
+                    cert.save()
+                except Exception as e:
+                    print(f'[ERROR] Generando {cert.dni}: {e}')
+                    job.errores += 1
+                    job.save()
+                    continue
 
-        if i < len(tandas) - 1:
-            print(f'[TANDA {i+1}] Esperando {espera_horas}h para la próxima tanda...')
-            time.sleep(espera_horas * 3600)
+                # Enviar fe de erratas a todos; adjuntar PDF solo a quienes completaron la encuesta
+                attach_pdf = cert.dni in dnis_con_encuesta
+                ok = _send_fe_erratas(cert, attach_pdf=attach_pdf)
+                adjunto_str = ' [+diploma]' if attach_pdf else ''
+                print(f'  {"✔" if ok else "✗"} {cert.apellido}, {cert.nombre} — {cert.correo}{adjunto_str}')
 
-    print('[DONE] Regeneración y envío completados.')
+                if ok:
+                    job.enviados += 1
+                else:
+                    job.errores += 1
+                job.save()
+
+                time.sleep(3)
+
+            if i < len(tandas) - 1:
+                print(f'[TANDA {i+1}] Esperando {espera_horas}h para la próxima tanda...')
+                time.sleep(espera_horas * 3600)
+
+        job.status = 'completado'
+        job.finished_at = timezone.now()
+        job.save()
+        print('[DONE] Regeneración y envío completados.')
+
+    except Exception as e:
+        job.status = 'error'
+        job.finished_at = timezone.now()
+        job.save()
+        print(f'[FATAL] {e}')
 
 
 class Command(BaseCommand):
@@ -169,12 +193,17 @@ class Command(BaseCommand):
                 self.stdout.write(f'[{label}] → {destino}: {estado}')
             return
 
+        from charlas.models import EmissionJob
+
+        job = EmissionJob.objects.create(total=len(certs))
         self.stdout.write(f'Tanda: {options["tanda"]} | Espera: {options["espera"]}h')
+        self.stdout.write(self.style.SUCCESS(
+            f'Seguimiento en: {settings.SITE_URL}/certificados/emitir/status/{job.id}/'))
         self.stdout.write('Iniciando en segundo plano...')
 
         t = threading.Thread(
             target=_run_en_background,
-            args=(certs, options['tanda'], options['espera']),
+            args=(certs, options['tanda'], options['espera'], job.id),
             daemon=True
         )
         t.start()
