@@ -12,43 +12,51 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-def _send_fe_erratas(cert, attach_pdf=False):
+def _build_message(cert, attach_pdf=False):
+    from email.mime.application import MIMEApplication
+
+    html = render_to_string('charlas/email_fe_erratas.html', {
+        'cert': cert,
+        'site_url': settings.SITE_URL,
+    })
+
+    msg = MIMEMultipart('mixed')
+    msg['Subject'] = 'Corrección de certificado — Jornadas de Formación Profesional 2026'
+    msg['From'] = settings.DEFAULT_FROM_EMAIL
+    msg['To'] = cert.correo
+
+    alt = MIMEMultipart('alternative')
+    alt.attach(MIMEText(html, 'html'))
+    msg.attach(alt)
+
+    if attach_pdf and cert.archivo:
+        pdf_path = settings.MEDIA_ROOT / cert.archivo.name
+        if pdf_path.exists():
+            with open(pdf_path, 'rb') as f:
+                pdf = MIMEApplication(f.read(), _subtype='pdf')
+                pdf.add_header(
+                    'Content-Disposition', 'attachment',
+                    filename=f'diploma_{cert.apellido}_{cert.nombre}.pdf'
+                )
+                msg.attach(pdf)
+
+    return msg
+
+
+def _send_fe_erratas(cert, attach_pdf=False, connection=None):
     try:
-        from email.mime.application import MIMEApplication
-
-        html = render_to_string('charlas/email_fe_erratas.html', {
-            'cert': cert,
-            'site_url': settings.SITE_URL,
-        })
-
-        msg = MIMEMultipart('mixed')
-        msg['Subject'] = 'Corrección de certificado — Jornadas de Formación Profesional 2026'
-        msg['From'] = settings.DEFAULT_FROM_EMAIL
-        msg['To'] = cert.correo
-
-        alt = MIMEMultipart('alternative')
-        alt.attach(MIMEText(html, 'html'))
-        msg.attach(alt)
-
-        if attach_pdf and cert.archivo:
-            pdf_path = settings.MEDIA_ROOT / cert.archivo.name
-            if pdf_path.exists():
-                with open(pdf_path, 'rb') as f:
-                    pdf = MIMEApplication(f.read(), _subtype='pdf')
-                    pdf.add_header(
-                        'Content-Disposition', 'attachment',
-                        filename=f'diploma_{cert.apellido}_{cert.nombre}.pdf'
-                    )
-                    msg.attach(pdf)
-
-        connection = get_connection()
-        connection.open()
-        connection.connection.sendmail(
-            settings.DEFAULT_FROM_EMAIL,
-            [cert.correo],
-            msg.as_string()
-        )
-        connection.close()
+        msg = _build_message(cert, attach_pdf)
+        if connection:
+            connection.connection.sendmail(
+                settings.DEFAULT_FROM_EMAIL, [cert.correo], msg.as_string()
+            )
+        else:
+            conn = get_connection()
+            conn.open()
+            conn.connection.sendmail(
+                settings.DEFAULT_FROM_EMAIL, [cert.correo], msg.as_string()
+            )
+            conn.close()
         return True
     except Exception as e:
         print(f'[FE ERRATAS] Error enviando a {cert.correo}: {e}')
@@ -73,6 +81,10 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
     try:
         for i, tanda in enumerate(tandas):
             print(f'[TANDA {i+1}/{len(tandas)}] Procesando {len(tanda)} certificados...')
+
+            # Una sola conexión SMTP por tanda (evita múltiples DNS lookups)
+            conn = get_connection()
+            conn.open()
 
             for cert in tanda:
                 # Borrar PDF viejo
@@ -99,7 +111,7 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
 
                 # Enviar fe de erratas a todos; adjuntar PDF solo a quienes completaron la encuesta
                 attach_pdf = cert.dni in dnis_con_encuesta
-                ok = _send_fe_erratas(cert, attach_pdf=attach_pdf)
+                ok = _send_fe_erratas(cert, attach_pdf=attach_pdf, connection=conn)
                 adjunto_str = ' [+diploma]' if attach_pdf else ''
                 print(f'  {"✔" if ok else "✗"} {cert.apellido}, {cert.nombre} — {cert.correo}{adjunto_str}')
 
@@ -110,6 +122,8 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
                 job.save()
 
                 time.sleep(3)
+
+            conn.close()
 
             if i < len(tandas) - 1:
                 print(f'[TANDA {i+1}] Esperando {espera_horas}h para la próxima tanda...')
