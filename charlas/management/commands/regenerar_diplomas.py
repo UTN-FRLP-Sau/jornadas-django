@@ -63,7 +63,23 @@ def _send_fe_erratas(cert, attach_pdf=False, connection=None):
         return False
 
 
-def _run_en_background(certs, tanda_size, espera_horas, job_id):
+def _parse_enviados_del_log(log_path):
+    """Devuelve el set de correos que ya recibieron ✔ en un log anterior."""
+    import re
+    enviados = set()
+    try:
+        with open(log_path, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                # Líneas como: "  ✔ Apellido, Nombre — email@example.com [+diploma]"
+                m = re.search(r'✔.*?—\s+(\S+@\S+)', line)
+                if m:
+                    enviados.add(m.group(1).strip())
+    except FileNotFoundError:
+        print(f'[WARN] Log no encontrado: {log_path}')
+    return enviados
+
+
+def _run_en_background(certs, tanda_size, espera_horas, job_id, skip_correos=None):
     from django.utils import timezone
     from charlas.models import Survey, EmissionJob
 
@@ -75,6 +91,13 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id):
         Survey.objects.filter(completada=True).values_list('certificate__dni', flat=True)
     )
     print(f'[INFO] {len(dnis_con_encuesta)} alumnos con encuesta completada recibirán el diploma adjunto.')
+
+    if skip_correos:
+        certs_originales = len(certs)
+        certs = [c for c in certs if c.correo not in skip_correos]
+        print(f'[SKIP] {certs_originales - len(certs)} ya enviados según el log, quedan {len(certs)}.')
+        job.total = len(certs)
+        job.save()
 
     tandas = [certs[i:i+tanda_size] for i in range(0, len(certs), tanda_size)]
 
@@ -180,6 +203,8 @@ class Command(BaseCommand):
                             help='Simular sin hacer cambios')
         parser.add_argument('--test-email', type=str,
                             help='Enviar solo el primer certificado a este correo para prueba')
+        parser.add_argument('--skip-log', type=str, metavar='ARCHIVO',
+                            help='Ruta a un log anterior: saltea los correos que ya tienen ✔')
 
     def handle(self, *args, **options):
         from charlas.models import Survey
@@ -236,6 +261,12 @@ class Command(BaseCommand):
 
         from charlas.models import EmissionJob
 
+        skip_correos = None
+        if options.get('skip_log'):
+            skip_correos = _parse_enviados_del_log(options['skip_log'])
+            self.stdout.write(self.style.WARNING(
+                f'Skip log: {len(skip_correos)} correos ya enviados serán salteados.'))
+
         job = EmissionJob.objects.create(total=len(certs))
         self.stdout.write(f'Tanda: {options["tanda"]} | Espera: {options["espera"]}h')
         self.stdout.write(self.style.SUCCESS(
@@ -244,7 +275,7 @@ class Command(BaseCommand):
 
         t = threading.Thread(
             target=_run_en_background,
-            args=(certs, options['tanda'], options['espera'], job.id),
+            args=(certs, options['tanda'], options['espera'], job.id, skip_correos),
             daemon=True
         )
         t.start()
