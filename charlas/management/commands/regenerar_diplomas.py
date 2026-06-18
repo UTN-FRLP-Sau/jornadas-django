@@ -147,15 +147,24 @@ class Command(BaseCommand):
                 or cert_con
             )
 
-            for cert, attach, label in [
+            for cert, con_adjunto, label in [
                 (cert_sin, False, 'SIN adjunto'),
-                (cert_con, bool(cert_con and cert_con.archivo), 'CON adjunto'),
+                (cert_con, True, 'CON adjunto'),
             ]:
                 if not cert:
                     self.stdout.write(self.style.WARNING(f'No hay cert para prueba {label}'))
                     continue
+
+                # Regenerar PDF con el template actual (sin cambiar código ni guardar en DB)
+                try:
+                    archivo = _generate_certificate_pdf(cert)
+                    cert.archivo = archivo
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'[{label}] Error generando PDF: {e}'))
+                    continue
+
                 cert.correo = destino  # override en memoria, sin guardar
-                ok = _send_fe_erratas(cert, attach_pdf=attach)
+                ok = _send_fe_erratas(cert, attach_pdf=con_adjunto)
                 estado = self.style.SUCCESS('OK') if ok else self.style.ERROR('ERROR')
                 self.stdout.write(f'[{label}] → {destino}: {estado}')
             return
