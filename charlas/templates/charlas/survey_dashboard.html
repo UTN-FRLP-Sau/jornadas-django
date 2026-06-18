@@ -25,11 +25,13 @@
                 {% endfor %}
             </select>
         </div>
+        {% if not es_token_user %}
         <div class="col-md-3">
             <a id="btn-export" href="{% url 'survey_export' %}" class="btn btn-success rounded-pill px-4">
                 <i class="fa fa-file-excel me-2"></i>Exportar Excel
             </a>
         </div>
+        {% endif %}
     </div>
 </div>
 

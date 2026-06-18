@@ -417,6 +417,7 @@ def token_or_login_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if request.user.is_authenticated:
+            request.es_token_user = False
             return view_func(request, *args, **kwargs)
         # Token en la URL → validar y guardar en sesión
         token = request.GET.get('token')
@@ -427,6 +428,7 @@ def token_or_login_required(view_func):
         # Token en sesión → validar que siga activo
         session_token = request.session.get('dashboard_token')
         if session_token and DashboardToken.objects.filter(token=session_token, activo=True).exists():
+            request.es_token_user = True
             return view_func(request, *args, **kwargs)
         return render(request, 'charlas/token_invalido.html', status=403)
     return wrapper
