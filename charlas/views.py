@@ -1550,7 +1550,7 @@ def survey_dashboard_api(request):
     })
 
 
-@token_or_login_required
+@login_required
 def survey_export(request):
     carrera = request.GET.get('carrera', '')
     anio = request.GET.get('anio', '')
