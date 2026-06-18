@@ -101,4 +101,10 @@ urlpatterns = [
          views.reclamo_cambiar_tipo_cert, name='reclamo_cambiar_tipo_cert'),
     path('certificado/encuesta/<str:dni>/posponer/',
          views.survey_posponer, name='survey_posponer'),
+
+    # Tokens de acceso a dashboards
+    path('admin/tokens/', views.dashboard_tokens, name='dashboard_tokens'),
+    path('admin/tokens/crear/', views.dashboard_token_crear, name='dashboard_token_crear'),
+    path('admin/tokens/<int:pk>/toggle/', views.dashboard_token_toggle, name='dashboard_token_toggle'),
+    path('admin/tokens/<int:pk>/eliminar/', views.dashboard_token_eliminar, name='dashboard_token_eliminar'),
 ]

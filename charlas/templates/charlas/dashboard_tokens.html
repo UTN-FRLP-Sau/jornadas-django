@@ -1,0 +1,88 @@
+{% extends 'charlas/base_admin.html' %}
+{% block admin_content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="text-primary-gradient fw-medium">Administración</h5>
+            <h1 class="mb-0">Tokens de acceso a dashboards</h1>
+            <p class="text-muted mt-1">Compartí el link con el token para dar acceso al dashboard de encuestas y asistencia sin necesidad de login.</p>
+        </div>
+    </div>
+
+    <div class="card p-4 mb-4">
+        <h5 class="mb-3">Crear nuevo token</h5>
+        <form method="post" action="{% url 'dashboard_token_crear' %}" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <div class="col-md-6">
+                <label class="form-label">Nombre / descripción</label>
+                <input type="text" name="nombre" class="form-control" placeholder="Ej: Decano, Comisión, Difusión..." required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Crear token</button>
+            </div>
+        </form>
+    </div>
+
+    {% if tokens %}
+    <div class="card p-0 overflow-hidden">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Token</th>
+                    <th>Links</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tokens %}
+                <tr class="{% if not t.activo %}table-secondary text-muted{% endif %}">
+                    <td class="fw-bold align-middle">{{ t.nombre }}</td>
+                    <td class="align-middle">
+                        <code style="font-size:11px;">{{ t.token }}</code>
+                    </td>
+                    <td class="align-middle" style="font-size:12px;">
+                        {% if t.activo %}
+                        <a href="/admin/encuesta/dashboard/?token={{ t.token }}" target="_blank" class="d-block text-truncate" style="max-width:220px;">
+                            Encuestas
+                        </a>
+                        <a href="/admin/dashboard/asistencia/?token={{ t.token }}" target="_blank" class="d-block text-truncate" style="max-width:220px;">
+                            Asistencia
+                        </a>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="align-middle">
+                        {% if t.activo %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="align-middle text-muted" style="font-size:13px;">{{ t.created_at|date:"d/m/Y H:i" }}</td>
+                    <td class="align-middle text-end">
+                        <form method="post" action="{% url 'dashboard_token_toggle' t.pk %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if t.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                                {% if t.activo %}Desactivar{% else %}Activar{% endif %}
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'dashboard_token_eliminar' t.pk %}" class="d-inline ms-1"
+                              onsubmit="return confirm('¿Eliminar este token?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No hay tokens creados todavía.</p>
+    {% endif %}
+</div>
+{% endblock %}

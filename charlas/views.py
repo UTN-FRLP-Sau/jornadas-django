@@ -29,7 +29,7 @@ from django.contrib.auth import views as auth_views
 
 from charlas.constants import DEPT_COLORS, DEPT_NAMES, DEPT_ORDER
 from .forms import RegistrationForm, TalkForm
-from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate, TalkRating, Survey
+from .models import Registration, Talk, CertificateConfig, EmissionJob, Certificate, TalkRating, Survey, DashboardToken
 
 import openpyxl
 from openpyxl.styles import Font, PatternFill
@@ -410,6 +410,25 @@ def sanitize_excel(value):
     if not isinstance(value, str):
         return value
     return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', value)
+
+
+def token_or_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+        # Token en la URL → validar y guardar en sesión
+        token = request.GET.get('token')
+        if token:
+            if DashboardToken.objects.filter(token=token, activo=True).exists():
+                request.session['dashboard_token'] = token
+                return redirect(request.path)
+        # Token en sesión → validar que siga activo
+        session_token = request.session.get('dashboard_token')
+        if session_token and DashboardToken.objects.filter(token=session_token, activo=True).exists():
+            return view_func(request, *args, **kwargs)
+        return render(request, 'charlas/token_invalido.html', status=403)
+    return wrapper
 
 
 def login_required_json(view_func):
@@ -1399,7 +1418,7 @@ def survey_done(request, dni):
     return render(request, 'charlas/survey_done.html', {'cert': cert})
 
 
-@login_required
+@token_or_login_required
 def attendance_dashboard(request):
     from charlas.constants import DEPT_COLORS, DEPT_ORDER
 
@@ -1443,7 +1462,7 @@ def attendance_dashboard(request):
     })
 
 
-@login_required
+@token_or_login_required
 def survey_dashboard(request):
     carreras = Survey.objects.exclude(carrera='').values_list(
         'carrera', flat=True).distinct()
@@ -1458,7 +1477,7 @@ def survey_dashboard(request):
     })
 
 
-@login_required
+@token_or_login_required
 def survey_dashboard_api(request):
     carrera = request.GET.get('carrera', '')
     anio = request.GET.get('anio', '')
@@ -1530,7 +1549,7 @@ def survey_dashboard_api(request):
     })
 
 
-@login_required
+@token_or_login_required
 def survey_export(request):
     carrera = request.GET.get('carrera', '')
     anio = request.GET.get('anio', '')
@@ -1581,7 +1600,7 @@ def survey_export(request):
     return response
 
 
-@login_required
+@token_or_login_required
 def survey_respuestas_api(request):
     carrera = request.GET.get('carrera', '')
     anio = request.GET.get('anio', '')
@@ -1604,7 +1623,7 @@ def survey_respuestas_api(request):
     return JsonResponse({'respuestas': respuestas, 'total': len(respuestas)})
 
 
-@login_required
+@token_or_login_required
 def survey_talks_dashboard(request):
     from django.db.models import Avg, Count
     from charlas.constants import DEPT_COLORS, DEPT_ORDER
@@ -1636,7 +1655,7 @@ def survey_talks_dashboard(request):
     })
 
 
-@login_required
+@token_or_login_required
 def survey_talk_detail(request, talk_id):
     from django.db.models import Avg, Count
     from charlas.constants import DEPT_COLORS
@@ -2005,3 +2024,34 @@ def reclamo_resolver(request, pk):
         _send_reclamo_ampliacion(reclamo)
 
     return redirect('reclamo_detalle', pk=pk)
+
+
+@login_required
+def dashboard_tokens(request):
+    tokens = DashboardToken.objects.all()
+    return render(request, 'charlas/dashboard_tokens.html', {'tokens': tokens})
+
+
+@login_required
+@require_POST
+def dashboard_token_crear(request):
+    nombre = request.POST.get('nombre', '').strip()
+    if nombre:
+        DashboardToken.objects.create(nombre=nombre)
+    return redirect('dashboard_tokens')
+
+
+@login_required
+@require_POST
+def dashboard_token_toggle(request, pk):
+    token = get_object_or_404(DashboardToken, pk=pk)
+    token.activo = not token.activo
+    token.save()
+    return redirect('dashboard_tokens')
+
+
+@login_required
+@require_POST
+def dashboard_token_eliminar(request, pk):
+    get_object_or_404(DashboardToken, pk=pk).delete()
+    return redirect('dashboard_tokens')

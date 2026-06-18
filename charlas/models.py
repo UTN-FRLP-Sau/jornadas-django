@@ -261,6 +261,26 @@ class TalkRating(models.Model):
         unique_together = ('survey', 'talk')
 
 
+class DashboardToken(models.Model):
+    nombre = models.CharField('Nombre / Descripción', max_length=100)
+    token = models.CharField('Token', max_length=64, unique=True)
+    activo = models.BooleanField('Activo', default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Token de Dashboard'
+        verbose_name_plural = 'Tokens de Dashboard'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.nombre} — {"✔ activo" if self.activo else "✗ inactivo"}'
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        super().save(*args, **kwargs)
+
+
 class Reclamo(models.Model):
     TIPO_CHOICES = [
         ('asistencia', 'Fui pero no se registró mi presente'),
