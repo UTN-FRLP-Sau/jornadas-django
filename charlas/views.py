@@ -24,6 +24,7 @@ from django.http import JsonResponse, HttpResponse, FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from functools import wraps
 from django.contrib.auth import views as auth_views
 
@@ -2026,13 +2027,13 @@ def reclamo_resolver(request, pk):
     return redirect('reclamo_detalle', pk=pk)
 
 
-@login_required
+@staff_member_required
 def dashboard_tokens(request):
     tokens = DashboardToken.objects.all()
     return render(request, 'charlas/dashboard_tokens.html', {'tokens': tokens})
 
 
-@login_required
+@staff_member_required
 @require_POST
 def dashboard_token_crear(request):
     nombre = request.POST.get('nombre', '').strip()
@@ -2041,7 +2042,7 @@ def dashboard_token_crear(request):
     return redirect('dashboard_tokens')
 
 
-@login_required
+@staff_member_required
 @require_POST
 def dashboard_token_toggle(request, pk):
     token = get_object_or_404(DashboardToken, pk=pk)
@@ -2050,7 +2051,7 @@ def dashboard_token_toggle(request, pk):
     return redirect('dashboard_tokens')
 
 
-@login_required
+@staff_member_required
 @require_POST
 def dashboard_token_eliminar(request, pk):
     get_object_or_404(DashboardToken, pk=pk).delete()
