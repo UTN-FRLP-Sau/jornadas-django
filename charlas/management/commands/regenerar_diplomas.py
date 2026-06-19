@@ -219,6 +219,15 @@ class Command(BaseCommand):
 
         certs = list(Certificate.objects.filter(tipo='diploma'))
         con_encuesta = Survey.objects.filter(completada=True).count()
+
+        skip_correos = None
+        if options.get('skip_log'):
+            skip_correos = _parse_enviados_del_log(options['skip_log'])
+            certs_antes = len(certs)
+            certs = [c for c in certs if c.correo not in skip_correos]
+            self.stdout.write(self.style.WARNING(
+                f'Skip log: {len(skip_correos)} correos ya enviados — quedan {len(certs)} de {certs_antes}.'))
+
         self.stdout.write(f'Diplomas a procesar: {len(certs)}')
         self.stdout.write(f'Con encuesta completada (recibirán PDF adjunto): {con_encuesta}')
 
@@ -268,12 +277,6 @@ class Command(BaseCommand):
             return
 
         from charlas.models import EmissionJob
-
-        skip_correos = None
-        if options.get('skip_log'):
-            skip_correos = _parse_enviados_del_log(options['skip_log'])
-            self.stdout.write(self.style.WARNING(
-                f'Skip log: {len(skip_correos)} correos ya enviados serán salteados.'))
 
         job = EmissionJob.objects.create(total=len(certs))
         self.stdout.write(f'Tanda: {options["tanda"]} | Espera: {options["espera"]}h')
