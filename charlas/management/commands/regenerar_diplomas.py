@@ -81,8 +81,10 @@ def _parse_enviados_del_log(log_path):
 
 def _run_en_background(certs, tanda_size, espera_horas, job_id, skip_correos=None):
     from django.utils import timezone
+    from django.db import close_old_connections
     from charlas.models import Survey, EmissionJob
 
+    close_old_connections()
     job = EmissionJob.objects.get(id=job_id)
     job.status = 'procesando'
     job.save()
@@ -103,6 +105,8 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id, skip_correos=Non
 
     try:
         for i, tanda in enumerate(tandas):
+            # Reconectar a la DB al inicio de cada tanda (la conexión puede expirar durante el sleep)
+            close_old_connections()
             print(f'[TANDA {i+1}/{len(tandas)}] Procesando {len(tanda)} certificados...')
 
             # Una sola conexión SMTP por tanda (evita múltiples DNS lookups)
@@ -185,10 +189,14 @@ def _run_en_background(certs, tanda_size, espera_horas, job_id, skip_correos=Non
         print('[DONE] Regeneración y envío completados.')
 
     except Exception as e:
-        job.status = 'error'
-        job.finished_at = timezone.now()
-        job.save()
         print(f'[FATAL] {e}')
+        try:
+            close_old_connections()
+            job.status = 'error'
+            job.finished_at = timezone.now()
+            job.save()
+        except Exception as db_e:
+            print(f'[FATAL] No se pudo actualizar el job en DB: {db_e}')
 
 
 class Command(BaseCommand):
