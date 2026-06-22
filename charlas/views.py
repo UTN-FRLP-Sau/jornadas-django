@@ -1452,7 +1452,7 @@ def attendance_dashboard(request):
             insc = Registration.objects.filter(talk__department=dept, talk__date=fecha).values('dni').distinct().count()
             pres = Registration.objects.filter(talk__department=dept, talk__date=fecha, attended=True).values('dni').distinct().count()
             dept_data['por_dia'].append({
-                'fecha': fecha.strftime('%-d/%-m'),
+                'fecha': fecha,
                 'inscriptos': insc,
                 'presentes': pres,
             })
@@ -1473,7 +1473,7 @@ def attendance_dashboard(request):
         insc = Registration.objects.filter(talk__date=fecha).values('dni').distinct().count()
         pres = Registration.objects.filter(talk__date=fecha, attended=True).values('dni').distinct().count()
         por_dia.append({
-            'fecha': fecha.strftime('%-d/%-m'),
+            'fecha': fecha,
             'inscriptos': insc,
             'presentes': pres,
         })
