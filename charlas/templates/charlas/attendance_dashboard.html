@@ -6,21 +6,25 @@
 
 <div id="dashboard-root">
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.5rem;">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.5rem;">
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
-      <p style="font-size:13px;color:#666;margin:0 0 4px;">Total inscriptos</p>
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Inscriptos</p>
       <p style="font-size:24px;font-weight:500;margin:0;" id="m-inscriptos">-</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
-      <p style="font-size:13px;color:#666;margin:0 0 4px;">Total presentes</p>
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Participantes</p>
       <p style="font-size:24px;font-weight:500;margin:0;" id="m-presentes">-</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
-      <p style="font-size:13px;color:#666;margin:0 0 4px;">Asistencia global</p>
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Participación global</p>
       <p style="font-size:24px;font-weight:500;margin:0;" id="m-pct">-</p>
     </div>
     <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
-      <p style="font-size:13px;color:#666;margin:0 0 4px;" id="m-charlas-label">Charlas realizadas</p>
+      <p style="font-size:13px;color:#666;margin:0 0 4px;">Asistencia promedio</p>
+      <p style="font-size:24px;font-weight:500;margin:0;" id="m-avg">-</p>
+    </div>
+    <div style="background:var(--color-background-secondary,#f4f7fe);border-radius:8px;padding:1rem;text-align:center;">
+      <p style="font-size:13px;color:#666;margin:0 0 4px;" id="m-charlas-label">Charlas</p>
       <p style="font-size:24px;font-weight:500;margin:0;" id="m-charlas">-</p>
     </div>
   </div>
@@ -74,10 +78,16 @@ function badgeStyle(p){
   return 'background:#FAECE7;color:#993C1D;';
 }
 
-function updateMetrics(inscriptos, presentes, charlas, label){
+function avgPct(charlas){
+  if(!charlas.length) return 0;
+  return Math.round(charlas.reduce((a,c) => a + pct(c.presentes, c.inscriptos), 0) / charlas.length);
+}
+
+function updateMetrics(inscriptos, presentes, avg, charlas, label){
   document.getElementById('m-inscriptos').textContent = inscriptos.toLocaleString('es-AR');
   document.getElementById('m-presentes').textContent = presentes.toLocaleString('es-AR');
   document.getElementById('m-pct').textContent = pct(presentes, inscriptos) + '%';
+  document.getElementById('m-avg').textContent = avg + '%';
   document.getElementById('m-charlas').textContent = charlas;
   document.getElementById('m-charlas-label').textContent = label;
 }
@@ -94,14 +104,17 @@ function updateDayChart(data){
   dayChart.update();
 }
 
+const GLOBAL_AVG = avgPct(deptos.flatMap(d=>d.charlas));
+
 function updateCharts(idx){
   if(idx === null){
     document.getElementById('m-inscriptos').textContent = GLOBAL_INSCRIPTOS.toLocaleString('es-AR');
     document.getElementById('m-presentes').textContent = GLOBAL_PRESENTES.toLocaleString('es-AR');
     document.getElementById('m-pct').textContent = GLOBAL_PCT + '%';
+    document.getElementById('m-avg').textContent = GLOBAL_AVG + '%';
     document.getElementById('m-charlas').textContent = GLOBAL_CHARLAS;
-    document.getElementById('m-charlas-label').textContent = 'Charlas realizadas';
-    document.getElementById('bar-label').textContent = 'Inscriptos vs presentes por departamento';
+    document.getElementById('m-charlas-label').textContent = 'Charlas';
+    document.getElementById('bar-label').textContent = 'Inscriptos vs participantes por departamento';
     document.getElementById('dept-breadcrumb').textContent = '';
     barChart.data.labels = deptos.map(d=>d.dept);
     barChart.data.datasets[0].data = deptos.map(d=>d.inscriptos);
@@ -119,7 +132,7 @@ function updateCharts(idx){
     barChart.data.datasets[1].data = d.charlas.map(c=>c.presentes);
     barChart.data.datasets[1].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
     barChart.data.datasets[1].borderColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
-    updateMetrics(d.inscriptos, d.presentes, d.charlas.length, 'Charlas del depto');
+    updateMetrics(d.inscriptos, d.presentes, avgPct(d.charlas), d.charlas.length, 'Charlas del depto');
     updateDayChart(d.por_dia);
   }
   barChart.update();
@@ -211,7 +224,7 @@ function buildTable(){
 
 buildTable();
 
-updateMetrics(GLOBAL_INSCRIPTOS, GLOBAL_PRESENTES, GLOBAL_CHARLAS, 'Charlas realizadas');
+updateMetrics(GLOBAL_INSCRIPTOS, GLOBAL_PRESENTES, GLOBAL_AVG, GLOBAL_CHARLAS, 'Charlas');
 
 barChart = new Chart(document.getElementById('barChart'),{
   type:'bar',
