@@ -1457,8 +1457,20 @@ def attendance_dashboard(request):
     data = list(departments.values())
     total_charlas = sum(len(d['charlas']) for d in data)
 
+    fechas = Talk.objects.values_list('date', flat=True).distinct().order_by('date')
+    por_dia = []
+    for fecha in fechas:
+        insc = Registration.objects.filter(talk__date=fecha).values('dni').distinct().count()
+        pres = Registration.objects.filter(talk__date=fecha, attended=True).values('dni').distinct().count()
+        por_dia.append({
+            'fecha': fecha.strftime('%-d/%-m'),
+            'inscriptos': insc,
+            'presentes': pres,
+        })
+
     return render(request, 'charlas/attendance_dashboard.html', {
         'departments': json.dumps(data),
+        'por_dia': json.dumps(por_dia),
         'total_inscriptos': total_inscriptos,
         'total_presentes': total_presentes,
         'total_charlas': total_charlas,

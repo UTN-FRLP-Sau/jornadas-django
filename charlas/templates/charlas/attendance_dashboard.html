@@ -25,15 +25,14 @@
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:1.5rem;">
+  <div style="display:grid;grid-template-columns:3fr 1fr;gap:16px;margin-bottom:1.5rem;">
     <div>
       <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;" id="bar-label">Inscriptos vs presentes por departamento</p>
       <div style="position:relative;height:260px;"><canvas id="barChart" role="img" aria-label="Inscriptos vs presentes"></canvas></div>
     </div>
     <div>
-      <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;" id="donut-label">% asistencia por departamento</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;font-size:11px;" id="legend"></div>
-      <div style="position:relative;height:220px;"><canvas id="donutChart" role="img" aria-label="Porcentaje asistencia"></canvas></div>
+      <p style="font-size:13px;color:#666;margin:0 0 8px;font-weight:500;">Inscriptos y presentes por día</p>
+      <div style="position:relative;height:260px;"><canvas id="dayChart" role="img" aria-label="Por día"></canvas></div>
     </div>
   </div>
 
@@ -63,8 +62,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
 const deptos = {{ departments|safe }};
+const porDia = {{ por_dia|safe }};
 let activeIdx = null;
-let barChart, donutChart;
+let barChart, dayChart;
 
 function pct(p,i){ return i===0 ? 0 : Math.round(p/i*100); }
 
@@ -72,15 +72,6 @@ function badgeStyle(p){
   if(p>=80) return 'background:#E1F5EE;color:#0F6E56;';
   if(p>=60) return 'background:#FAEEDA;color:#854F0B;';
   return 'background:#FAECE7;color:#993C1D;';
-}
-
-function buildLegend(items){
-  document.getElementById('legend').innerHTML = items.map(d=>
-    `<span style="display:flex;align-items:center;gap:4px;">
-      <span style="width:10px;height:10px;border-radius:2px;background:${d.color};display:inline-block;"></span>
-      <span style="color:#666;">${d.label}</span>
-    </span>`
-  ).join('');
 }
 
 function updateMetrics(inscriptos, presentes, charlas, label){
@@ -98,29 +89,21 @@ const GLOBAL_PCT = Math.round(GLOBAL_PRESENTES / GLOBAL_INSCRIPTOS * 100);
 
 function updateCharts(idx){
   if(idx === null){
-    // Usar valores globales del servidor
     document.getElementById('m-inscriptos').textContent = GLOBAL_INSCRIPTOS.toLocaleString('es-AR');
     document.getElementById('m-presentes').textContent = GLOBAL_PRESENTES.toLocaleString('es-AR');
     document.getElementById('m-pct').textContent = GLOBAL_PCT + '%';
     document.getElementById('m-charlas').textContent = GLOBAL_CHARLAS;
     document.getElementById('m-charlas-label').textContent = 'Charlas realizadas';
-    // Actualizar gráficos con datos globales
     document.getElementById('bar-label').textContent = 'Inscriptos vs presentes por departamento';
-    document.getElementById('donut-label').textContent = '% asistencia por departamento';
     document.getElementById('dept-breadcrumb').textContent = '';
     barChart.data.labels = deptos.map(d=>d.dept);
     barChart.data.datasets[0].data = deptos.map(d=>d.inscriptos);
     barChart.data.datasets[1].data = deptos.map(d=>d.presentes);
     barChart.data.datasets[1].backgroundColor = deptos.map(d=>d.color+'CC');
     barChart.data.datasets[1].borderColor = deptos.map(d=>d.color);
-    donutChart.data.labels = deptos.map(d=>d.dept);
-    donutChart.data.datasets[0].data = deptos.map(d=>pct(d.presentes,d.inscriptos));
-    donutChart.data.datasets[0].backgroundColor = deptos.map(d=>d.color);
-    buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
   } else {
     const d = deptos[idx];
     document.getElementById('bar-label').textContent = `Charlas — ${d.dept}`;
-    document.getElementById('donut-label').textContent = `% asistencia por charla`;
     document.getElementById('dept-breadcrumb').textContent = `— ${d.dept}`;
     const shades = ['CC','AA','88','66','55','44','33'];
     barChart.data.labels = d.charlas.map(c=>c.titulo.length>20?c.titulo.slice(0,18)+'…':c.titulo);
@@ -128,14 +111,9 @@ function updateCharts(idx){
     barChart.data.datasets[1].data = d.charlas.map(c=>c.presentes);
     barChart.data.datasets[1].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
     barChart.data.datasets[1].borderColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
-    donutChart.data.labels = d.charlas.map(c=>c.titulo.length>20?c.titulo.slice(0,18)+'…':c.titulo);
-    donutChart.data.datasets[0].data = d.charlas.map(c=>pct(c.presentes,c.inscriptos));
-    donutChart.data.datasets[0].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
-    buildLegend(d.charlas.map((c,i)=>({color:d.color+shades[i%shades.length],label:c.titulo.length>22?c.titulo.slice(0,20)+'…':c.titulo})));
     updateMetrics(d.inscriptos, d.presentes, d.charlas.length, 'Charlas del depto');
   }
   barChart.update();
-  donutChart.update();
 }
 
 function buildTable(){
@@ -222,7 +200,6 @@ function buildTable(){
   });
 }
 
-buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
 buildTable();
 
 updateMetrics(GLOBAL_INSCRIPTOS, GLOBAL_PRESENTES, GLOBAL_CHARLAS, 'Charlas realizadas');
@@ -239,13 +216,20 @@ barChart = new Chart(document.getElementById('barChart'),{
   options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true}}}
 });
 
-donutChart = new Chart(document.getElementById('donutChart'),{
-  type:'doughnut',
+dayChart = new Chart(document.getElementById('dayChart'),{
+  type:'bar',
   data:{
-    labels:deptos.map(d=>d.dept),
-    datasets:[{data:deptos.map(d=>pct(d.presentes,d.inscriptos)),backgroundColor:deptos.map(d=>d.color),borderWidth:2}]
+    labels: porDia.map(d=>d.fecha),
+    datasets:[
+      {label:'Inscriptos', data:porDia.map(d=>d.inscriptos), backgroundColor:'rgba(55,138,221,0.25)', borderColor:'#378ADD', borderWidth:1},
+      {label:'Presentes',  data:porDia.map(d=>d.presentes),  backgroundColor:'rgba(29,158,117,0.6)',  borderColor:'#1D9E75',  borderWidth:1}
+    ]
   },
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom', labels:{font:{size:10}, boxWidth:10}}},
+    scales:{x:{ticks:{font:{size:11}}}, y:{beginAtZero:true}}
+  }
 });
 </script>
 {% endblock %}
