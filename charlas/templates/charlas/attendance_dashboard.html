@@ -87,6 +87,13 @@ const GLOBAL_PRESENTES = {{ total_presentes }};
 const GLOBAL_CHARLAS = {{ total_charlas }};
 const GLOBAL_PCT = Math.round(GLOBAL_PRESENTES / GLOBAL_INSCRIPTOS * 100);
 
+function updateDayChart(data){
+  dayChart.data.labels = data.map(d=>d.fecha);
+  dayChart.data.datasets[0].data = data.map(d=>d.inscriptos);
+  dayChart.data.datasets[1].data = data.map(d=>d.presentes);
+  dayChart.update();
+}
+
 function updateCharts(idx){
   if(idx === null){
     document.getElementById('m-inscriptos').textContent = GLOBAL_INSCRIPTOS.toLocaleString('es-AR');
@@ -101,6 +108,7 @@ function updateCharts(idx){
     barChart.data.datasets[1].data = deptos.map(d=>d.presentes);
     barChart.data.datasets[1].backgroundColor = deptos.map(d=>d.color+'CC');
     barChart.data.datasets[1].borderColor = deptos.map(d=>d.color);
+    updateDayChart(porDia);
   } else {
     const d = deptos[idx];
     document.getElementById('bar-label').textContent = `Charlas — ${d.dept}`;
@@ -112,6 +120,7 @@ function updateCharts(idx){
     barChart.data.datasets[1].backgroundColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
     barChart.data.datasets[1].borderColor = d.charlas.map((_,i)=>d.color+shades[i%shades.length]);
     updateMetrics(d.inscriptos, d.presentes, d.charlas.length, 'Charlas del depto');
+    updateDayChart(d.por_dia);
   }
   barChart.update();
 }

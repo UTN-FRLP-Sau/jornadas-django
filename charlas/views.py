@@ -1429,6 +1429,8 @@ def attendance_dashboard(request):
     total_presentes = Registration.objects.filter(
         attended=True).values('dni').distinct().count()
 
+    fechas = list(Talk.objects.values_list('date', flat=True).distinct().order_by('date'))
+
     departments = {}
     for dept in DEPT_ORDER:
         talks = Talk.objects.filter(department=dept)
@@ -1443,8 +1445,17 @@ def attendance_dashboard(request):
             'color': DEPT_COLORS.get(dept, '#2b4efe'),
             'inscriptos': inscriptos_unicos,
             'presentes': presentes_unicos,
-            'charlas': []
+            'charlas': [],
+            'por_dia': [],
         }
+        for fecha in fechas:
+            insc = Registration.objects.filter(talk__department=dept, talk__date=fecha).values('dni').distinct().count()
+            pres = Registration.objects.filter(talk__department=dept, talk__date=fecha, attended=True).values('dni').distinct().count()
+            dept_data['por_dia'].append({
+                'fecha': fecha.strftime('%-d/%-m'),
+                'inscriptos': insc,
+                'presentes': pres,
+            })
         for talk in talks:
             dept_data['charlas'].append({
                 'titulo': talk.title,
@@ -1457,7 +1468,6 @@ def attendance_dashboard(request):
     data = list(departments.values())
     total_charlas = sum(len(d['charlas']) for d in data)
 
-    fechas = Talk.objects.values_list('date', flat=True).distinct().order_by('date')
     por_dia = []
     for fecha in fechas:
         insc = Registration.objects.filter(talk__date=fecha).values('dni').distinct().count()
