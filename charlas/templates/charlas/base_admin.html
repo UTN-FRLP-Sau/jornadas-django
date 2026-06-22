@@ -4,9 +4,9 @@
 {% block content %}
 
 {% if not es_token_user %}
-<!-- Toggle fijo, siempre visible -->
+<!-- Hamburguesa fija: solo visible cuando el sidebar está colapsado -->
 <button id="sidebar-toggle" class="btn btn-sm border-0"
-    style="position: fixed; top: 80px; left: 10px; z-index: 999; color: #2b4efe; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; width: 36px; height: 36px;">
+    style="display: none; position: fixed; top: 80px; left: 10px; z-index: 999; color: #2b4efe; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; width: 36px; height: 36px; align-items: center; justify-content: center;">
     <i class="fa fa-bars"></i>
 </button>
 {% endif %}
@@ -16,8 +16,13 @@
     <!-- Sidebar -->
     <div id="sidebar" style="width: {% if es_token_user %}0px{% else %}220px{% endif %}; min-width: {% if es_token_user %}0px{% else %}220px{% endif %}; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.07); padding: 60px 0 24px 0; transition: width 0.3s, min-width 0.3s; overflow: hidden;">
 
-        <div class="px-3 mb-3">
+        <div class="d-flex align-items-center justify-content-between px-3 mb-3">
             <h6 class="text-muted text-uppercase small fw-bold mb-0 sidebar-label">Panel Admin</h6>
+            {% if not es_token_user %}
+            <button id="sidebar-close" class="btn btn-sm border-0 p-0 sidebar-label" style="color: #aaa; line-height:1;">
+                <i class="fa fa-bars"></i>
+            </button>
+            {% endif %}
         </div>
 
         <nav class="nav flex-column">
@@ -94,20 +99,24 @@
 {% block sidebar_scripts %}
 <script>
 const toggle = document.getElementById('sidebar-toggle');
+const closeBtn = document.getElementById('sidebar-close');
 const sidebar = document.getElementById('sidebar');
-const labels = document.querySelectorAll('.sidebar-label');
-let collapsed = false;
 
-toggle.addEventListener('click', () => {
-    collapsed = !collapsed;
-    if (collapsed) {
+if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
         sidebar.style.width = '0px';
         sidebar.style.minWidth = '0px';
-    } else {
+        toggle.style.display = 'flex';
+    });
+}
+
+if (toggle) {
+    toggle.addEventListener('click', () => {
         sidebar.style.width = '220px';
         sidebar.style.minWidth = '220px';
-    }
-});
+        toggle.style.display = 'none';
+    });
+}
 </script>
 {% endblock %}
 {% endwith %}
