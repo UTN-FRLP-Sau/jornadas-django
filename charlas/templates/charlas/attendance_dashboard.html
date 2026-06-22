@@ -225,10 +225,7 @@ function buildTable(){
 buildLegend(deptos.map(d=>({color:d.color,label:d.dept})));
 buildTable();
 
-const ti = deptos.reduce((a,d)=>a+d.inscriptos,0);
-const tp = deptos.reduce((a,d)=>a+d.presentes,0);
-const tc = deptos.reduce((a,d)=>a+d.charlas.length,0);
-updateMetrics(ti, tp, tc, 'Charlas realizadas');
+updateMetrics(GLOBAL_INSCRIPTOS, GLOBAL_PRESENTES, GLOBAL_CHARLAS, 'Charlas realizadas');
 
 barChart = new Chart(document.getElementById('barChart'),{
   type:'bar',
