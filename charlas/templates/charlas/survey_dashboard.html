@@ -163,13 +163,15 @@ function getFilters() {
 }
 
 function updateExportLink() {
+    const btn = document.getElementById('btn-export');
+    if (!btn) return;
     const { carrera, anio } = getFilters();
     let url = "{% url 'survey_export' %}";
     const params = new URLSearchParams();
     if (carrera) params.append('carrera', carrera);
     if (anio) params.append('anio', anio);
     if (params.toString()) url += '?' + params.toString();
-    document.getElementById('btn-export').href = url;
+    btn.href = url;
 }
 
 function renderPie(id, data) {
